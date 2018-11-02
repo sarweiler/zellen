@@ -12,13 +12,13 @@ g = grid.connect()
 
 
 function init()
-  params:add_control("release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
+  params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
   
-  params:add_control("cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
+  params:add_control("cutoff", "cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
   params:set_action("cutoff", set_cutoff)
   
-  params:add_number("speed", 0, 1000, 140)
+  params:add_number("speed", "speed", 0, 1000, 140)
   params:set_action("speed", set_speed)
   
   GRID_SIZE = {
@@ -34,6 +34,13 @@ function init()
     ["ALIVE_THRESHOLD"] = 7,
     ["ACTIVE"] = 15
   }
+  
+  SCREENS = {
+    ["BOARD"] = 1,
+    ["CONFIRM"] = 2
+  }
+  
+  current_screen = SCREENS.BOARD
   
   SCALE = music.generate_scale_of_length(48, "minor pentatonic", 32)
   
@@ -121,15 +128,21 @@ function enc(n, d)
   redraw()
 end
 
-function key(n, z)
+-- default key function
+local _key_default = function (n, z)
   if (n == 2 and z == 1) then
     game_step()
   end
   if (n == 3 and z == 1) then
-    clear_board()
+    show_confirm("clear board")
   end
 end
 
+local _key = _key_default
+
+function key(n, z)
+  _key(n, z)
+end
 
 -- game logic
 function game_step()
@@ -289,3 +302,47 @@ end
 function bpm_to_seconds_16(bpm)
   return 60 / bpm / 4
 end
+
+function redefine_key_for_confirm(callback_ok, callback_cancel)
+  _key = function(n, z) 
+    if (n == 2 and z == 1) then
+      callback_cancel()
+    end
+    if (n == 3 and z == 1) then
+      callback_ok()
+    end
+  end
+end
+
+function show_default() 
+  _key = _key_default
+  redraw()
+end
+
+function show_confirm(message)
+  redefine_key_for_confirm(
+    function()
+      clear_board()
+      show_default()
+    end,
+    show_default
+  )
+  
+  local x_pos = 64
+  local y_pos = 26
+  local y_offset = 10
+  screen.clear()
+  screen.move(x_pos, y_pos)
+  screen.level(15)
+  screen.text_center(message)
+  screen.level(4)
+  screen.move(x_pos, y_pos + y_offset)
+  screen.text_center("really?")
+  screen.move(0, 60)
+  screen.text("KEY2 - cancel")
+  screen.move(128, 60)
+  screen.text_right("KEY3 - ok")
+
+  screen.update()
+end
+
