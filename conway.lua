@@ -21,6 +21,11 @@ function init()
   params:add_number("speed", "speed", 0, 1000, 140)
   params:set_action("speed", set_speed)
   
+  --params:add_option("reborn_mode", "reborn mode", {
+  --  ["yes"] = true,
+  --  ["no"] = false
+  --}, true)
+  
   GRID_SIZE = {
     ["X"] = 16,
     ["Y"] = 8
