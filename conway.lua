@@ -9,6 +9,7 @@ music = require("mark_eats/musicutil")
 
 engine.name = "PolyPerc"
 g = grid.connect()
+m = midi.connect()
 
 
 function init()
@@ -20,6 +21,15 @@ function init()
   
   params:add_number("speed", "speed", 0, 1000, 140)
   params:set_action("speed", set_speed)
+  
+  params:add_number("midi_device_number", "midi device number", 1, 5, 1)
+  params:set_action("midi_device_number", set_midi_device_number)
+  
+  --params:add_number("midi_note_length", "midi note length", 1, 1000, 30)
+  --params:set_action("midi_note_length", set_midi_note_length)
+  
+  params:add_number("midi_note_velocity", "midi note velocity", 1, 127, 80)
+  --params:set_action("midi_note_velocity", set_midi_note_length)
   
   --params:add_option("reborn_mode", "reborn mode", {
   --  ["yes"] = true,
@@ -55,6 +65,8 @@ function init()
   seq_counter.callback = play_seq
   
   born_cells = {}
+  
+  active_notes = {}
   
   init_position()
   
@@ -243,10 +255,12 @@ function collect_born_cells()
 end
 
 function play_seq()
+  notes_off()
   --print("play", #born_cells)
   if (play_pos <= #born_cells) then
     position = born_cells[play_pos]
-    engine.hz(music.note_num_to_freq(SCALE[position.x + position.y]))
+    local midi_note = SCALE[position.x + position.y]
+    note_on(midi_note)
     play_pos = play_pos + 1
   else
     seq_counter:stop()
@@ -281,6 +295,25 @@ function set_cutoff(f)
   engine.cutoff(f)
 end
 
+-- notes
+function note_on(note)
+  engine.hz(music.note_num_to_freq(note))
+  m.note_on(note, params:get("midi_note_velocity"))
+  table.insert(active_notes, note)
+end
+
+function notes_off()
+  for i=1,table.length(active_notes) do
+    m.note_off(active_notes[i])
+  end
+  active_notes = {}
+end
+
+-- midi control
+function set_midi_device_number()
+  m:disconnect()
+  m:reconnect(params:get("midi_device_number"))
+end
 
 -- helpers
 function clone_board(b)
@@ -302,6 +335,12 @@ end
 
 function table.clone(org)
   return {table.unpack(org)}
+end
+
+function table.length(t)
+  local count = 0
+  for _ in pairs(t) do count = count + 1 end
+  return count
 end
 
 function bpm_to_seconds_16(bpm)
