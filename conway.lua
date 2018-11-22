@@ -41,8 +41,8 @@ function init()
   
   LEVEL = {
     ["ALIVE"] = 8,
-    ["BORN"] = 13,
-    ["REBORN"] = 15,
+    ["BORN"] = 12,
+    ["REBORN"] = 13,
     ["DYING"] = 2,
     ["DEAD"] = 0,
     ["ALIVE_THRESHOLD"] = 7,
@@ -64,6 +64,7 @@ function init()
   seq_counter.callback = play_seq
   
   note_offset = 0
+  ghost_mode_offset = -24
   
   born_cells = {}
   
@@ -332,7 +333,7 @@ end
 
 function set_mode(mode)
   if(mode == 3) then
-    note_offset = -24
+    note_offset = ghost_mode_offset
   else
     note_offset = 0
   end
