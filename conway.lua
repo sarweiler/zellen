@@ -13,28 +13,26 @@ m = midi.connect()
 
 
 function init()
+  params:add_option("mode", "mode", {
+  "reborn",
+  "born",
+  "ghost"
+  })
+  params:set_action("mode", set_mode)
+  
   params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
   
   params:add_control("cutoff", "cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
   params:set_action("cutoff", set_cutoff)
   
-  params:add_number("speed", "speed", 0, 1000, 140)
+  params:add_number("speed", "speed", 0, 1000, 100)
   params:set_action("speed", set_speed)
   
   params:add_number("midi_device_number", "midi device number", 1, 5, 1)
   params:set_action("midi_device_number", set_midi_device_number)
   
-  --params:add_number("midi_note_length", "midi note length", 1, 1000, 30)
-  --params:set_action("midi_note_length", set_midi_note_length)
-  
-  params:add_number("midi_note_velocity", "midi note velocity", 1, 127, 80)
-  --params:set_action("midi_note_velocity", set_midi_note_length)
-  
-  --params:add_option("reborn_mode", "reborn mode", {
-  --  ["yes"] = true,
-  --  ["no"] = false
-  --}, true)
+  params:add_number("midi_note_velocity", "midi note velocity", 1, 127, 100)
   
   GRID_SIZE = {
     ["X"] = 16,
@@ -44,6 +42,7 @@ function init()
   LEVEL = {
     ["ALIVE"] = 8,
     ["BORN"] = 13,
+    ["REBORN"] = 15,
     ["DYING"] = 2,
     ["DEAD"] = 0,
     ["ALIVE_THRESHOLD"] = 7,
@@ -63,6 +62,8 @@ function init()
   seq_counter.time = bpm_to_seconds_16(params:get("speed"))
   seq_counter.count = -1
   seq_counter.callback = play_seq
+  
+  note_offset = 0
   
   born_cells = {}
   
@@ -163,7 +164,6 @@ end
 
 -- game logic
 function game_step()
-  print("step")
   local board_c = clone_board(board)
   for x=1,GRID_SIZE.X do
     for y=1,GRID_SIZE.Y do
@@ -183,8 +183,10 @@ function game_step()
       if (num_neighbors > 1 and num_neighbors < 4 and cell_active) then
         board_c[x][y] = LEVEL.ALIVE
       end
-      if (num_neighbors == 3) then
-        --print("born     : ", x, y, num_neighbors)
+      if (num_neighbors == 3 and cell_active) then
+        board_c[x][y] = LEVEL.REBORN
+      end
+      if (num_neighbors == 3 and not cell_active) then
         board_c[x][y] = LEVEL.BORN
       end
     end
@@ -238,13 +240,31 @@ function was_born(x, y)
   return board[x][y] == LEVEL.BORN
 end
 
+function was_reborn(x, y)
+  return board[x][y] == LEVEL.REBORN
+end
+
 
 -- sequencing
 function collect_born_cells()
   born_cells = {}
+  local mode = params:get("mode")
+  print("mode: " .. mode)
   for x=1,GRID_SIZE.X do
     for y=1,GRID_SIZE.Y do
-      if (was_born(x, y)) then
+      if ((was_born(x, y) or was_reborn(x, y)) and mode == 1) then
+        table.insert(born_cells, {
+          ["x"] = x,
+          ["y"] = y
+        })
+      end
+      if (was_born(x, y) and mode == 2) then
+        table.insert(born_cells, {
+          ["x"] = x,
+          ["y"] = y
+        })
+      end
+      if (is_dying(x, y) and mode == 3) then
         table.insert(born_cells, {
           ["x"] = x,
           ["y"] = y
@@ -297,9 +317,10 @@ end
 
 -- notes
 function note_on(note)
-  engine.hz(music.note_num_to_freq(note))
-  m.note_on(note, params:get("midi_note_velocity"))
-  table.insert(active_notes, note)
+  local note_num = note + note_offset
+  engine.hz(music.note_num_to_freq(note_num))
+  m.note_on(note_num, params:get("midi_note_velocity"))
+  table.insert(active_notes, note_num)
 end
 
 function notes_off()
@@ -307,6 +328,14 @@ function notes_off()
     m.note_off(active_notes[i])
   end
   active_notes = {}
+end
+
+function set_mode(mode)
+  if(mode == 3) then
+    note_offset = -24
+  else
+    note_offset = 0
+  end
 end
 
 -- midi control
