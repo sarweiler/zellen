@@ -2,8 +2,9 @@
 -- sequencer based on conway's game of life
 --
 -- grid: enter cell pattern
--- KEY2: start
--- KEY3: stop
+-- KEY2: tbd
+-- KEY3: advance generation
+-- KEY1 held + KEY3: delete board
 
 music = require("mark_eats/musicutil")
 
@@ -12,13 +13,22 @@ g = grid.connect()
 m = midi.connect()
 
 
+-- init
 function init()
+  
+  -- params
   params:add_option("mode", "mode", {
   "reborn",
   "born",
   "ghost"
   })
   params:set_action("mode", set_mode)
+  
+  params:add_option("seq_mode", "seq mode", {
+  "manually",
+  "semi-manually",
+  "automatically"
+  }, 2)
   
   params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
@@ -54,6 +64,10 @@ function init()
     ["CONFIRM"] = 2
   }
   
+  KEY1_DOWN = false
+  KEY2_DOWN = false
+  KEY3_DOWN = false
+  
   current_screen = SCREENS.BOARD
   
   SCALE = music.generate_scale_of_length(48, "minor pentatonic", 32)
@@ -61,7 +75,7 @@ function init()
   seq_counter = metro.alloc()
   seq_counter.time = bpm_to_seconds_16(params:get("speed"))
   seq_counter.count = -1
-  seq_counter.callback = play_seq
+  seq_counter.callback = play_seq_step
   
   note_offset = 0
   ghost_mode_offset = -24
@@ -83,6 +97,8 @@ function init()
   init_engine()
 end
 
+
+-- UI handling
 function redraw()
   screen.clear()
   screen.move(0, 8)
@@ -123,6 +139,8 @@ function grid_redraw()
   g.refresh()
 end
 
+
+-- GRID handling
 g.event = function(x, y, z)
   if (z == 1) then
     if (is_active(x, y)) then
@@ -134,6 +152,8 @@ g.event = function(x, y, z)
   grid_redraw()
 end
 
+
+-- ENC handling
 function enc(n, d)
   if (n == 1) then
     params:delta("speed", d)
@@ -147,24 +167,38 @@ function enc(n, d)
   redraw()
 end
 
--- default key function
-local _key_default = function (n, z)
-  if (n == 2 and z == 1) then
-    game_step()
-  end
-  if (n == 3 and z == 1) then
-    show_confirm("clear board")
-  end
-end
 
-local _key = _key_default
-
+-- KEY handling
 function key(n, z)
-  _key(n, z)
+  local seq_mode = params:get("seq_mode")
+  if (n == 1) then
+    KEY1_DOWN = z == 1
+  end
+  if (n == 2) then
+    KEY2_DOWN = z == 1
+    if (KEY2_DOWN) then
+      if(seq_mode == 1) then
+        play_seq_step()
+      elseif(seq_mode == 2 or seq_mode == 3) then
+        seq_counter:start()
+      end
+    end
+  end
+  if (n == 3) then
+    KEY3_DOWN = z == 1
+    if(KEY3_DOWN and KEY1_DOWN) then
+      clear_board()
+    elseif(KEY3_DOWN) then
+      seq_counter:stop()
+      generation_step()
+    end
+  end
 end
+
 
 -- game logic
-function game_step()
+function generation_step()
+  notes_off()
   local board_c = clone_board(board)
   for x=1,GRID_SIZE.X do
     for y=1,GRID_SIZE.Y do
@@ -174,11 +208,9 @@ function game_step()
         board_c[x][y] = LEVEL.DEAD
       end
       if (num_neighbors < 2 and cell_active) then
-        --print("died (up):", x, y, num_neighbors)
         board_c[x][y] = LEVEL.DYING
       end
       if (num_neighbors > 3 and cell_active) then
-        --print("died (op):", x, y, num_neighbors)
         board_c[x][y] = LEVEL.DYING
       end
       if (num_neighbors > 1 and num_neighbors < 4 and cell_active) then
@@ -194,11 +226,12 @@ function game_step()
   end
   board = board_c
   play_pos = 1
-  collect_born_cells()
-  seq_counter:start()
-  --grid_redraw()
+  collect_active_cells()
+  grid_redraw()
 end
 
+
+-- game logic helpers
 function number_of_neighbors(x, y)
   local num_neighbors = 0
   if (x < GRID_SIZE.X) then
@@ -247,7 +280,7 @@ end
 
 
 -- sequencing
-function collect_born_cells()
+function collect_active_cells()
   born_cells = {}
   local mode = params:get("mode")
   print("mode: " .. mode)
@@ -275,17 +308,26 @@ function collect_born_cells()
   end
 end
 
-function play_seq()
+function play_seq_step()
+  local seq_mode = params:get("seq_mode")
+  print("born_cells: " .. #born_cells)
+  print("play_pos: " .. play_pos)
   notes_off()
-  --print("play", #born_cells)
   if (play_pos <= #born_cells) then
     position = born_cells[play_pos]
     local midi_note = SCALE[position.x + position.y]
     note_on(midi_note)
     play_pos = play_pos + 1
   else
-    seq_counter:stop()
+    play_pos = 1
     init_position()
+    
+    if(seq_mode == 3) then
+      generation_step()
+      seq_counter:start()
+    else
+      seq_counter:stop()
+    end
   end
   grid_redraw()
 end
@@ -325,7 +367,7 @@ function note_on(note)
 end
 
 function notes_off()
-  for i=1,table.length(active_notes) do
+  for i=1,#active_notes do
     m.note_off(active_notes[i])
   end
   active_notes = {}
@@ -367,56 +409,7 @@ function table.clone(org)
   return {table.unpack(org)}
 end
 
-function table.length(t)
-  local count = 0
-  for _ in pairs(t) do count = count + 1 end
-  return count
-end
-
 function bpm_to_seconds_16(bpm)
   return 60 / bpm / 4
-end
-
-function redefine_key_for_confirm(callback_ok, callback_cancel)
-  _key = function(n, z) 
-    if (n == 2 and z == 1) then
-      callback_cancel()
-    end
-    if (n == 3 and z == 1) then
-      callback_ok()
-    end
-  end
-end
-
-function show_default() 
-  _key = _key_default
-  redraw()
-end
-
-function show_confirm(message)
-  redefine_key_for_confirm(
-    function()
-      clear_board()
-      show_default()
-    end,
-    show_default
-  )
-  
-  local x_pos = 64
-  local y_pos = 26
-  local y_offset = 10
-  screen.clear()
-  screen.move(x_pos, y_pos)
-  screen.level(15)
-  screen.text_center(message)
-  screen.level(4)
-  screen.move(x_pos, y_pos + y_offset)
-  screen.text_center("really?")
-  screen.move(0, 60)
-  screen.text("KEY2 - cancel")
-  screen.move(128, 60)
-  screen.text_right("KEY3 - ok")
-
-  screen.update()
 end
 
