@@ -16,6 +16,8 @@ m = midi.connect()
 -- init
 function init()
   
+  SCALE_NAMES = table.map(function(scale) return scale.name end, music.SCALES)
+  
   -- params
   params:add_option("mode", "mode", {
   "reborn",
@@ -29,15 +31,20 @@ function init()
   "semi-manually",
   "automatically"
   }, 2)
+
+  params:add_number("speed", "speed", 0, 1000, 100)
+  params:set_action("speed", set_speed)
+  
+  params:add_option("scale", "scale", SCALE_NAMES, 1)
+  params:set_action("scale", set_scale)
+  
+  -- TODO: root note
   
   params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
   
   params:add_control("cutoff", "cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
   params:set_action("cutoff", set_cutoff)
-  
-  params:add_number("speed", "speed", 0, 1000, 100)
-  params:set_action("speed", set_speed)
   
   params:add_number("midi_device_number", "midi device number", 1, 5, 1)
   params:set_action("midi_device_number", set_midi_device_number)
@@ -70,7 +77,7 @@ function init()
   
   current_screen = SCREENS.BOARD
   
-  SCALE = music.generate_scale_of_length(48, "minor pentatonic", 32)
+  scale = music.generate_scale_of_length(48, SCALE_NAMES[13], 32)
   
   seq_counter = metro.alloc()
   seq_counter.time = bpm_to_seconds_16(params:get("speed"))
@@ -203,6 +210,10 @@ end
 -- parameter callbacks
 function set_speed(bpm)
   seq_counter.time = bpm_to_seconds_16(bpm)
+end
+
+function set_scale(scale_name)
+  scale = music.generate_scale_of_length(48, scale_name, 32)
 end
 
 function set_release(r)
@@ -338,7 +349,7 @@ function play_seq_step()
   notes_off()
   if (play_pos <= #born_cells) then
     position = born_cells[play_pos]
-    local midi_note = SCALE[position.x + position.y]
+    local midi_note = scale[position.x + position.y]
     note_on(midi_note)
     play_pos = play_pos + 1
   else
@@ -405,6 +416,14 @@ end
 
 function table.clone(org)
   return {table.unpack(org)}
+end
+
+function table.map(f, arr)
+  local mapped_arr = {}
+  for i,v in ipairs(arr) do
+    mapped_arr[i] = f(v)
+  end
+  return mapped_arr
 end
 
 function bpm_to_seconds_16(bpm)
