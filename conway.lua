@@ -97,6 +97,10 @@ function init()
   init_engine()
 end
 
+function init_engine()
+  engine.release(params:get("release"))
+  engine.cutoff(params:get("cutoff"))
+end
 
 -- UI handling
 function redraw()
@@ -193,6 +197,25 @@ function key(n, z)
       generation_step()
     end
   end
+end
+
+
+-- parameter callbacks
+function set_speed(bpm)
+  seq_counter.time = bpm_to_seconds_16(bpm)
+end
+
+function set_release(r)
+  engine.release(r)
+end
+
+function set_cutoff(f)
+  engine.cutoff(f)
+end
+
+function set_midi_device_number()
+  m:disconnect()
+  m:reconnect(params:get("midi_device_number"))
 end
 
 
@@ -339,25 +362,6 @@ function init_position()
   }
 end
 
-function set_speed(bpm)
-  seq_counter.time = bpm_to_seconds_16(bpm)
-end
-
-
--- engine controls
-function init_engine()
-  engine.release(params:get("release"))
-  engine.cutoff(params:get("cutoff"))
-end
-
-function set_release(r)
-  engine.release(r)
-end
-
-function set_cutoff(f)
-  engine.cutoff(f)
-end
-
 -- notes
 function note_on(note)
   local note_num = note + note_offset
@@ -379,12 +383,6 @@ function set_mode(mode)
   else
     note_offset = 0
   end
-end
-
--- midi control
-function set_midi_device_number()
-  m:disconnect()
-  m:reconnect(params:get("midi_device_number"))
 end
 
 -- helpers
