@@ -16,41 +16,6 @@ m = midi.connect()
 -- init
 function init()
   
-  SCALE_NAMES = table.map(function(scale) return scale.name end, music.SCALES)
-  
-  -- params
-  params:add_option("mode", "mode", {
-  "reborn",
-  "born",
-  "ghost"
-  })
-  params:set_action("mode", set_mode)
-  
-  params:add_option("seq_mode", "seq mode", {
-  "manually",
-  "semi-manually",
-  "automatically"
-  }, 2)
-
-  params:add_number("speed", "speed", 0, 1000, 100)
-  params:set_action("speed", set_speed)
-  
-  params:add_option("scale", "scale", SCALE_NAMES, 1)
-  params:set_action("scale", set_scale)
-  
-  -- TODO: root note
-  
-  params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
-  params:set_action("release", set_release)
-  
-  params:add_control("cutoff", "cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
-  params:set_action("cutoff", set_cutoff)
-  
-  params:add_number("midi_device_number", "midi device number", 1, 5, 1)
-  params:set_action("midi_device_number", set_midi_device_number)
-  
-  params:add_number("midi_note_velocity", "midi note velocity", 1, 127, 100)
-  
   GRID_SIZE = {
     ["X"] = 16,
     ["Y"] = 8
@@ -71,13 +36,73 @@ function init()
     ["CONFIRM"] = 2
   }
   
+  NOTE_NAMES_OCTAVE = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+  NOTES = {}
+  for i=0, 72 do
+    NOTES[i] = {
+      ["number"] = i,
+      ["name"] = NOTE_NAMES_OCTAVE[i % 12 + 1] .. math.floor(i / 12),
+      ["octave"] = math.floor(i / 12)
+    }
+  end
+  NOTE_NAMES = table.map(function(note) return note.name end, NOTES)
+  
+  SCALE_NAMES = table.map(function(scale) return scale.name end, music.SCALES)
+  SCALE_LENGTH = 24
+  
+  SEQ_MODES = {
+    "manually",
+    "semi-manually",
+    "automatically"
+  }
+  
+  PLAY_DIRECTIONS = {
+    "upwards",
+    "downwards",
+    "random",
+    "drunken up",
+    "drunken down"
+  }
+  
   KEY1_DOWN = false
   KEY2_DOWN = false
   KEY3_DOWN = false
   
-  current_screen = SCREENS.BOARD
+  -- params
+  params:add_option("mode", "mode", {
+  "reborn",
+  "born",
+  "ghost"
+  })
+  params:set_action("mode", set_mode)
   
-  scale = music.generate_scale_of_length(48, SCALE_NAMES[13], 32)
+  params:add_option("seq_mode", "seq mode", SEQ_MODES, 2)
+
+  params:add_number("speed", "speed", 0, 1000, 100)
+  params:set_action("speed", set_speed)
+  
+  params:add_option("scale", "scale", SCALE_NAMES, 1)
+  params:set_action("scale", set_scale)
+  
+  params:add_option("root_note", "root note", NOTE_NAMES, 48)
+  params:set_action("root_note", set_root_note)
+  
+  params:add_option("play_direction", "play direction", PLAY_DIRECTIONS, 1)
+  
+  params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
+  params:set_action("release", set_release)
+  
+  params:add_control("cutoff", "cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
+  params:set_action("cutoff", set_cutoff)
+  
+  params:add_number("midi_device_number", "midi device number", 1, 5, 1)
+  params:set_action("midi_device_number", set_midi_device_number)
+  
+  params:add_number("midi_note_velocity", "midi note velocity", 1, 127, 100)
+  
+  root_note = 36
+  scale_name = SCALE_NAMES[13]
+  scale = music.generate_scale_of_length(root_note, scale_name, SCALE_LENGTH)
   
   seq_counter = metro.alloc()
   seq_counter.time = bpm_to_seconds_16(params:get("speed"))
@@ -86,10 +111,9 @@ function init()
   
   note_offset = 0
   ghost_mode_offset = -24
-  
-  born_cells = {}
-  
+  playable_cells = {}
   active_notes = {}
+  seq_running = false
   
   init_position()
   
@@ -191,7 +215,13 @@ function key(n, z)
       if(seq_mode == 1) then
         play_seq_step()
       elseif(seq_mode == 2 or seq_mode == 3) then
-        seq_counter:start()
+        if(seq_running) then
+          seq_counter:stop()
+          seq_running = false
+        else
+          seq_counter:start()
+          seq_running = true
+        end
       end
     end
   end
@@ -201,6 +231,7 @@ function key(n, z)
       clear_board()
     elseif(KEY3_DOWN) then
       seq_counter:stop()
+      seq_running = false
       generation_step()
     end
   end
@@ -212,8 +243,22 @@ function set_speed(bpm)
   seq_counter.time = bpm_to_seconds_16(bpm)
 end
 
-function set_scale(scale_name)
-  scale = music.generate_scale_of_length(48, scale_name, 32)
+function set_mode(mode)
+  if(mode == 3) then
+    note_offset = ghost_mode_offset
+  else
+    note_offset = 0
+  end
+end
+
+function set_scale(new_scale_name)
+  scale = music.generate_scale_of_length(root_note, new_scale_name, SCALE_LENGTH)
+end
+
+function set_root_note(root_note)
+  print("root note: " .. root_note)
+  --local note_num = note_name_to_num(root_note)
+  scale = music.generate_scale_of_length(root_note, scale_name, SCALE_LENGTH)
 end
 
 function set_release(r)
@@ -260,7 +305,7 @@ function generation_step()
   end
   board = board_c
   play_pos = 1
-  collect_active_cells()
+  collect_playable_cells()
   grid_redraw()
 end
 
@@ -314,44 +359,60 @@ end
 
 
 -- sequencing
-function collect_active_cells()
-  born_cells = {}
+function collect_playable_cells()
+  playable_cells = {}
   local mode = params:get("mode")
-  print("mode: " .. mode)
+  --print("mode: " .. mode)
   for x=1,GRID_SIZE.X do
     for y=1,GRID_SIZE.Y do
       if ((was_born(x, y) or was_reborn(x, y)) and mode == 1) then
-        table.insert(born_cells, {
+        table.insert(playable_cells, {
           ["x"] = x,
           ["y"] = y
         })
       end
       if (was_born(x, y) and mode == 2) then
-        table.insert(born_cells, {
+        table.insert(playable_cells, {
           ["x"] = x,
           ["y"] = y
         })
       end
       if (is_dying(x, y) and mode == 3) then
-        table.insert(born_cells, {
+        table.insert(playable_cells, {
           ["x"] = x,
           ["y"] = y
         })
       end
     end
   end
+  
+  local play_direction = params:get("play_direction")
+  if(play_direction == 2 or play_direction == 5) then
+    playable_cells = table.reverse(playable_cells)
+  elseif(play_direction == 3) then
+    playable_cells = table.shuffle(playable_cells)
+  end
 end
 
 function play_seq_step()
   local seq_mode = params:get("seq_mode")
-  print("born_cells: " .. #born_cells)
-  print("play_pos: " .. play_pos)
+  local play_direction = params:get("play_direction")
+  --print("playable_cells: " .. #playable_cells)
+  --print("play_pos: " .. play_pos)
   notes_off()
-  if (play_pos <= #born_cells) then
-    position = born_cells[play_pos]
+  if (play_pos <= #playable_cells) then
+    position = playable_cells[play_pos]
     local midi_note = scale[position.x + position.y]
     note_on(midi_note)
-    play_pos = play_pos + 1
+    if(play_direction == 4 or play_direction == 5) then
+      if(math.random(2) == 1 and play_pos > 1) then
+        play_pos = play_pos - 1
+      else
+        play_pos = play_pos + 1
+      end
+    else
+      play_pos = play_pos + 1
+    end
   else
     play_pos = 1
     init_position()
@@ -359,8 +420,10 @@ function play_seq_step()
     if(seq_mode == 3) then
       generation_step()
       seq_counter:start()
+      seq_running = true
     else
       seq_counter:stop()
+      seq_running = false
     end
   end
   grid_redraw()
@@ -375,7 +438,8 @@ end
 
 -- notes
 function note_on(note)
-  local note_num = note + note_offset
+  local note_num = math.min((note + note_offset), 127)
+  print("note: " .. note_num)
   engine.hz(music.note_num_to_freq(note_num))
   m.note_on(note_num, params:get("midi_note_velocity"))
   table.insert(active_notes, note_num)
@@ -386,14 +450,6 @@ function notes_off()
     m.note_off(active_notes[i])
   end
   active_notes = {}
-end
-
-function set_mode(mode)
-  if(mode == 3) then
-    note_offset = ghost_mode_offset
-  else
-    note_offset = 0
-  end
 end
 
 -- helpers
@@ -411,6 +467,7 @@ function clear_board()
       board[x][y] = LEVEL.DEAD
     end 
   end
+  init_position()
   grid_redraw()
 end
 
@@ -426,7 +483,53 @@ function table.map(f, arr)
   return mapped_arr
 end
 
+function table.reverse(arr)
+  local rev_arr = {}
+  for i = #arr, 1, -1 do
+    table.insert(rev_arr, arr[i])
+  end
+  return rev_arr
+end
+
+function table.shuffle(arr)
+  for i = #arr, 2, -1 do
+    local j = math.random(i)
+    arr[i], arr[j] = arr[j], arr[i]
+  end
+  return arr
+end
+
+function note_name_to_num(name)
+  local NOTE_NAME_INDEX = {
+    ["C"] = 0,
+    ["C#"] = 1,
+    ["D"] = 2,
+    ["D#"] = 3,
+    ["E"] = 4,
+    ["F"] = 5,
+    ["F#"] = 6,
+    ["G"] = 7,
+    ["G#"] = 8,
+    ["A"] = 9,
+    ["A#"] = 10,
+    ["B"] = 11
+  }
+  local name_len = #name
+  local note_name = "C"
+  local octave = "0"
+  if (name_len == 2) then
+    note_name = name:sub(1,1)
+    octave = name:sub(2,2)
+  elseif (name_len == 3) then
+    note_name = name:sub(1,2)
+    octave = name:sub(3,3)
+  end
+  local note_index = NOTE_NAME_INDEX[note_name]
+  return tonumber(octave) * 12 + note_index
+end
+
 function bpm_to_seconds_16(bpm)
   return 60 / bpm / 4
 end
+
 
