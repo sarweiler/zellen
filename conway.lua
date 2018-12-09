@@ -57,11 +57,17 @@ function init()
   }
   
   PLAY_DIRECTIONS = {
-    "upwards",
-    "downwards",
+    "up",
+    "down",
     "random",
     "drunken up",
     "drunken down"
+  }
+  
+  PLAY_MODES = {
+  "reborn",
+  "born",
+  "ghost"
   }
   
   KEY1_DOWN = false
@@ -69,12 +75,8 @@ function init()
   KEY3_DOWN = false
   
   -- params
-  params:add_option("mode", "mode", {
-  "reborn",
-  "born",
-  "ghost"
-  })
-  params:set_action("mode", set_mode)
+  params:add_option("play_mode", "play mode", PLAY_MODES, 1)
+  params:set_action("play_mode", set_play_mode)
   
   params:add_option("seq_mode", "seq mode", SEQ_MODES, 2)
 
@@ -88,6 +90,7 @@ function init()
   params:set_action("root_note", set_root_note)
   
   params:add_option("play_direction", "play direction", PLAY_DIRECTIONS, 1)
+  params:set_action("play_direction", set_play_direction)
   
   params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
@@ -145,17 +148,17 @@ function redraw()
   
   screen.move(0, 28)
   screen.level(15)
-  screen.text(string.format("%.0f", params:get("cutoff")))
+  screen.text(PLAY_MODES[params:get("play_mode")])
   screen.level(7)
   screen.move(0, 36)
-  screen.text("cutoff")
+  screen.text("play mode")
   
   screen.move(0, 48)
   screen.level(15)
-  screen.text(params:get("release"))
+  screen.text(PLAY_DIRECTIONS[params:get("play_direction")])
   screen.level(7)
   screen.move(0, 56)
-  screen.text("release")
+  screen.text("play direction")
   
   screen.update()
 end
@@ -194,10 +197,11 @@ function enc(n, d)
     params:delta("speed", d)
   end
   if (n == 2) then
-    params:delta("cutoff", d)
+    params:delta("play_mode", d)
   end
   if (n == 3) then
-    params:delta("release", d)
+    print("delta: " .. d)
+    params:delta("play_direction", d)
   end
   redraw()
 end
@@ -243,12 +247,18 @@ function set_speed(bpm)
   seq_counter.time = bpm_to_seconds_16(bpm)
 end
 
-function set_mode(mode)
-  if(mode == 3) then
+function set_play_mode(play_mode)
+  print("play_mode: " .. play_mode)
+  if(play_mode == 3) then
     note_offset = ghost_mode_offset
   else
     note_offset = 0
   end
+  collect_playable_cells()
+end
+
+function set_play_direction()
+  collect_playable_cells()
 end
 
 function set_scale(new_scale_name)
@@ -256,7 +266,7 @@ function set_scale(new_scale_name)
 end
 
 function set_root_note(root_note)
-  print("root note: " .. root_note)
+  --print("root note: " .. root_note)
   --local note_num = note_name_to_num(root_note)
   scale = music.generate_scale_of_length(root_note, scale_name, SCALE_LENGTH)
 end
@@ -361,7 +371,7 @@ end
 -- sequencing
 function collect_playable_cells()
   playable_cells = {}
-  local mode = params:get("mode")
+  local mode = params:get("play_mode")
   --print("mode: " .. mode)
   for x=1,GRID_SIZE.X do
     for y=1,GRID_SIZE.Y do
@@ -439,7 +449,7 @@ end
 -- notes
 function note_on(note)
   local note_num = math.min((note + note_offset), 127)
-  print("note: " .. note_num)
+  --print("note: " .. note_num)
   engine.hz(music.note_num_to_freq(note_num))
   m.note_on(note_num, params:get("midi_note_velocity"))
   table.insert(active_notes, note_num)
