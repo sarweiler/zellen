@@ -70,6 +70,12 @@ function init()
   "ghost"
   }
   
+  SYNTHS = {
+    "internal",
+    "midi",
+    "both"
+  }
+  
   KEY1_DOWN = false
   KEY2_DOWN = false
   KEY3_DOWN = false
@@ -100,6 +106,8 @@ function init()
   
   params:add_control("cutoff", "cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
   params:set_action("cutoff", set_cutoff)
+  
+  params:add_option("synth", "synth", SYNTHS, 3)
   
   params:add_number("midi_device_number", "midi device number", 1, 5, 1)
   params:set_action("midi_device_number", set_midi_device_number)
@@ -272,8 +280,6 @@ function set_scale(new_scale_name)
 end
 
 function set_root_note(new_root_note)
-  --print("root note: " .. root_note)
-  --local note_num = note_name_to_num(root_note)
   root_note = new_root_note
   scale = music.generate_scale_of_length(new_root_note, scale_name, SCALE_LENGTH)
 end
@@ -414,12 +420,11 @@ end
 function play_seq_step()
   local seq_mode = params:get("seq_mode")
   local play_direction = params:get("play_direction")
-  --print("playable_cells: " .. #playable_cells)
-  --print("play_pos: " .. play_pos)
   notes_off()
+  
   if (play_pos <= #playable_cells) then
     position = playable_cells[play_pos]
-    local midi_note = scale[position.x + position.y]
+    local midi_note = scale[(position.x - 1) + position.y]
     note_on(midi_note)
     if(play_direction == 4 or play_direction == 5) then
       if(math.random(2) == 1 and play_pos > 1) then
@@ -458,9 +463,13 @@ end
 -- notes
 function note_on(note)
   local note_num = math.min((note + note_offset), 127)
-  --print("note: " .. note_num)
-  engine.hz(music.note_num_to_freq(note_num))
-  m.note_on(note_num, params:get("midi_note_velocity"))
+  local synth_mode = params:get("synth")
+  if(synth_mode == 1 or synth_mode == 3) then
+    engine.hz(music.note_num_to_freq(note_num))
+  end
+  if(synth_mode == 2 or synth_mode == 3) then
+    m.note_on(note_num, params:get("midi_note_velocity"))
+  end
   table.insert(active_notes, note_num)
 end
 
@@ -551,5 +560,4 @@ end
 function bpm_to_seconds_16(bpm)
   return 60 / bpm / 4
 end
-
 
