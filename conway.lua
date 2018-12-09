@@ -92,6 +92,9 @@ function init()
   params:add_option("play_direction", "play direction", PLAY_DIRECTIONS, 1)
   params:set_action("play_direction", set_play_direction)
   
+  params:add_number("ghost_offset", "ghost offset", -24, 24, 0)
+  params:set_action("ghost_offset", set_ghost_offset)
+  
   params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
   
@@ -113,7 +116,6 @@ function init()
   seq_counter.callback = play_seq_step
   
   note_offset = 0
-  ghost_mode_offset = -24
   playable_cells = {}
   active_notes = {}
   seq_running = false
@@ -250,7 +252,7 @@ end
 function set_play_mode(play_mode)
   print("play_mode: " .. play_mode)
   if(play_mode == 3) then
-    note_offset = ghost_mode_offset
+    note_offset = params:get("ghost_offset")
   else
     note_offset = 0
   end
@@ -261,14 +263,19 @@ function set_play_direction()
   collect_playable_cells()
 end
 
+function set_ghost_offset()
+  set_play_mode(params:get("play_mode"))
+end
+
 function set_scale(new_scale_name)
   scale = music.generate_scale_of_length(root_note, new_scale_name, SCALE_LENGTH)
 end
 
-function set_root_note(root_note)
+function set_root_note(new_root_note)
   --print("root note: " .. root_note)
   --local note_num = note_name_to_num(root_note)
-  scale = music.generate_scale_of_length(root_note, scale_name, SCALE_LENGTH)
+  root_note = new_root_note
+  scale = music.generate_scale_of_length(new_root_note, scale_name, SCALE_LENGTH)
 end
 
 function set_release(r)
@@ -429,8 +436,10 @@ function play_seq_step()
     
     if(seq_mode == 3) then
       generation_step()
-      seq_counter:start()
-      seq_running = true
+      if(not seq_running) then
+        seq_counter:start()
+        seq_running = true
+      end
     else
       seq_counter:stop()
       seq_running = false
@@ -477,6 +486,7 @@ function clear_board()
       board[x][y] = LEVEL.DEAD
     end 
   end
+  notes_off()
   init_position()
   grid_redraw()
 end
