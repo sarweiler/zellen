@@ -35,7 +35,7 @@ Set the sequencing mode in the parameters screen. Default is semi-manual.
 * automatic: Like semi-automatic, but automatically calculates the next generation and plays it.
 
 ## MIDI
-Set the MIDI device number (default: 1) and midi velocity (default: 100) in the parameters screen. MIDI sync and more MIDI related features will be implemented in a future update.
+Set the MIDI device number (default: 1) and MIDI velocity (default: 100) in the parameters screen. MIDI sync and more MIDI related features will be implemented in a future update.
 
 ## More Parameters
 There is lots more to discover in the parameters screen, like root note, scale, and ghost offset.
