@@ -29,7 +29,7 @@ Set the play direction with KEY3.
 * drunken down: Like down, but decides for each step randomly if it goes up or down.
 
 ### Sequencing modes
-Set the sequencing mode in the parameters screen. Default is semi-automatic.
+Set the sequencing mode in the parameters screen. Default is semi-manual.
 * manual: Press KEY2 to play the next step in the sequence for a single generation.
 * semi-manual: Plays the sequence for a single generation.
 * automatic: Like semi-automatic, but automatically calculates the next generation and plays it.
