@@ -81,6 +81,8 @@ function init()
     "both"
   }
   
+  PLAYING_INDICATOR = ">"
+  
   KEY1_DOWN = false
   KEY2_DOWN = false
   KEY3_DOWN = false
@@ -132,6 +134,7 @@ function init()
   playable_cells = {}
   active_notes = {}
   seq_running = false
+  show_playing_indicator = false
   
   init_position()
   
@@ -176,6 +179,20 @@ function redraw()
   screen.text("play direction")
   
   screen.update()
+end
+
+function update_playing_indicator(show)
+  if (params:get("seq_mode") ~= 1) then
+    screen.move(128, 56)
+    if (show) then
+      screen.level(15)
+      screen.text_right(PLAYING_INDICATOR)
+    else
+      screen.level(0)
+      screen.text_right(PLAYING_INDICATOR)
+    end
+    screen.update()
+  end
 end
 
 function grid_redraw()
@@ -237,9 +254,11 @@ function key(n, z)
         if(seq_running) then
           seq_counter:stop()
           seq_running = false
+          update_playing_indicator(false)
         else
           seq_counter:start()
           seq_running = true
+          update_playing_indicator(true)
         end
       end
     end
@@ -251,6 +270,7 @@ function key(n, z)
     elseif(KEY3_DOWN) then
       seq_counter:stop()
       seq_running = false
+      update_playing_indicator(false)
       generation_step()
     end
   end
@@ -427,6 +447,9 @@ function play_seq_step()
   local play_direction = params:get("play_direction")
   notes_off()
   
+  show_playing_indicator = not show_playing_indicator
+  update_playing_indicator(show_playing_indicator)
+  
   if (play_pos <= #playable_cells) then
     position = playable_cells[play_pos]
     local midi_note = scale[(position.x - 1) + position.y]
@@ -449,10 +472,12 @@ function play_seq_step()
       if(not seq_running) then
         seq_counter:start()
         seq_running = true
+        update_playing_indicator(true)
       end
     else
       seq_counter:stop()
       seq_running = false
+      update_playing_indicator(false)
     end
   end
   grid_redraw()
