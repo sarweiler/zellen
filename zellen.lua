@@ -1,10 +1,15 @@
--- conway
+-- zellen
 -- sequencer based on conway's game of life
 --
 -- grid: enter cell pattern
--- KEY2: tbd
+-- KEY2: play/pause sequence
 -- KEY3: advance generation
--- KEY1 held + KEY3: delete board
+-- hold KEY1 + press KEY3: delete board
+-- ENC1: set speed (bpm)
+-- ENC2: set play mode
+-- ENC3: set play direction
+--
+-- see the parameters screen for more settings.
 
 music = require("mark_eats/musicutil")
 
@@ -51,9 +56,9 @@ function init()
   SCALE_LENGTH = 24
   
   SEQ_MODES = {
-    "manually",
-    "semi-manually",
-    "automatically"
+    "manual",
+    "semi-manual",
+    "automatic"
   }
   
   PLAY_DIRECTIONS = {

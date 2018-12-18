@@ -5,7 +5,7 @@ A sequencer for Monome norns based on [Conway's Game of Life](https://en.wikiped
 ## Usage
 
 * Grid: enter/modify cell pattern
-* KEY2: play/pause current generation (semi-automatic mode), advance sequence (manual mode), play/pause sequence (automatic mode)
+* KEY2: play/pause current generation (semi-manual mode), advance sequence (manual mode), play/pause sequence (automatic mode)
 * KEY3: advance generation
 * hold KEY1 and press KEY3: erase the board
 * ENC1: set speed (bpm)
@@ -17,7 +17,7 @@ A sequencer for Monome norns based on [Conway's Game of Life](https://en.wikiped
 Set the play mode with KEY2.
 * reborn (default): Play a note for every cell that was born or reborn (= has exactly three neighbors), regardless of the previous state of the cell
 * born: Play a note for every cell that was born (has exactly three neighbors and was not alive in the previous generation)
-* ghost: Play a note for every cell that is dying(has less than two or more than three neighbors). Ghost notes can have an offset! (See the parameters screen.)
+* ghost: Play a note for every cell that is dying(has less than two or more than three neighbors). Ghost notes can have a different pitch! (See the "ghost offset" setting in the parameters screen.)
 
 ### Play Direction
 
@@ -31,7 +31,7 @@ Set the play direction with KEY3.
 ### Sequencing modes
 Set the sequencing mode in the parameters screen. Default is semi-automatic.
 * manual: Press KEY2 to play the next step in the sequence for a single generation.
-* semi-automatic: Plays the sequence for a single generation.
+* semi-manual: Plays the sequence for a single generation.
 * automatic: Like semi-automatic, but automatically calculates the next generation and plays it.
 
 ## Midi
