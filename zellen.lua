@@ -1,15 +1,21 @@
 -- zellen
--- sequencer based on conway's game of life
+--
+-- sequencer based on
+-- conway's game of life
 --
 -- grid: enter cell pattern
+--
 -- KEY2: play/pause sequence
 -- KEY3: advance generation
--- hold KEY1 + press KEY3: delete board
+-- hold KEY1 + press KEY3:
+--   delete board
+--
 -- ENC1: set speed (bpm)
 -- ENC2: set play mode
 -- ENC3: set play direction
 --
--- see the parameters screen for more settings.
+-- see the parameters screen
+-- for more settings.
 
 music = require("mark_eats/musicutil")
 
@@ -249,6 +255,9 @@ function key(n, z)
     KEY2_DOWN = z == 1
     if (KEY2_DOWN) then
       if(seq_mode == 1) then
+        if (#playable_cells == 0) then
+          generation_step()
+        end
         play_seq_step()
       elseif(seq_mode == 2 or seq_mode == 3) then
         if(seq_running) then
@@ -256,6 +265,9 @@ function key(n, z)
           seq_running = false
           show_playing_indicator = false
         else
+          if (seq_mode == 2 and #playable_cells == 0) then
+            generation_step()
+          end
           seq_counter:start()
           seq_running = true
           show_playing_indicator = true
@@ -528,6 +540,7 @@ function clear_board()
   end
   notes_off()
   init_position()
+  playable_cells = {}
   grid_redraw()
 end
 
