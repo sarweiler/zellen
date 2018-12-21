@@ -17,62 +17,38 @@
 -- see the parameters screen
 -- for more settings.
 
+music = require("mark_eats/musicutil")
+
 engine.name = "PolyPerc"
-
-local music = require("mark_eats/musicutil")
-local g = grid.connect()
-local m = midi.connect()
+g = grid.connect()
+m = midi.connect()
 
 
--- some globally used constants
-local GRID_SIZE = {
-  ["X"] = 16,
-  ["Y"] = 8
-}
-local LEVEL = {
-  ["ALIVE"] = 8,
-  ["BORN"] = 12,
-  ["REBORN"] = 13,
-  ["DYING"] = 2,
-  ["DEAD"] = 0,
-  ["ALIVE_THRESHOLD"] = 7,
-  ["ACTIVE"] = 15
-}
-local SCALE_LENGTH = 24
-local SCALE_NAMES = table.map(function(scale) return scale.name end, music.SCALES)
-local PLAY_DIRECTIONS = {
-  "up",
-  "down",
-  "random",
-  "drunken up",
-  "drunken down"
-}
-local PLAY_MODES = {
-  "reborn",
-  "born",
-  "ghost"
-}
-local KEY1_DOWN = false
-local KEY2_DOWN = false
-local KEY3_DOWN = false
-
--- initial values
-local board = {}
-local note_offset = 0
-local playable_cells = {}
-local play_pos = 0
-local active_notes = {}
-local seq_running = false
-local show_playing_indicator = false
-local root_note = 36
-local scale_name = SCALE_NAMES[13]
-local scale = music.generate_scale_of_length(root_note, scale_name, SCALE_LENGTH)
-local seq_counter = metro.alloc()
- 
 -- init
 function init()
-  local NOTE_NAMES_OCTAVE = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
-  local NOTES = {}
+  
+  GRID_SIZE = {
+    ["X"] = 16,
+    ["Y"] = 8
+  }
+  
+  LEVEL = {
+    ["ALIVE"] = 8,
+    ["BORN"] = 12,
+    ["REBORN"] = 13,
+    ["DYING"] = 2,
+    ["DEAD"] = 0,
+    ["ALIVE_THRESHOLD"] = 7,
+    ["ACTIVE"] = 15
+  }
+  
+  SCREENS = {
+    ["BOARD"] = 1,
+    ["CONFIRM"] = 2
+  }
+  
+  NOTE_NAMES_OCTAVE = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+  NOTES = {}
   for i=0, 72 do
     NOTES[i] = {
       ["number"] = i,
@@ -80,21 +56,51 @@ function init()
       ["octave"] = math.floor(i / 12)
     }
   end
-  local NOTE_NAMES = table.map(function(note) return note.name end, NOTES)
+  NOTE_NAMES = table.map(function(note) return note.name end, NOTES)
   
-  local SEQ_MODES = {
+  SCALE_NAMES = table.map(function(scale) return scale.name end, music.SCALES)
+  SCALE_LENGTH = 24
+  
+  SEQ_MODES = {
     "manual",
     "semi-manual",
     "automatic"
   }
-  local SYNTHS = {
+  
+  PLAY_DIRECTIONS = {
+    "up",
+    "down",
+    "random",
+    "drunken up",
+    "drunken down"
+  }
+  
+  PLAY_MODES = {
+  "reborn",
+  "born",
+  "ghost"
+  }
+  
+  SYNTHS = {
     "internal",
     "midi",
     "both"
   }
   
+  PLAYING_INDICATOR = ">"
+  
+  KEY1_DOWN = false
+  KEY2_DOWN = false
+  KEY3_DOWN = false
+  
   -- params
+  params:add_option("play_mode", "play mode", PLAY_MODES, 1)
+  params:set_action("play_mode", set_play_mode)
+  
   params:add_option("seq_mode", "seq mode", SEQ_MODES, 2)
+
+  params:add_number("speed", "speed", 0, 1000, 100)
+  params:set_action("speed", set_speed)
   
   params:add_option("scale", "scale", SCALE_NAMES, 1)
   params:set_action("scale", set_scale)
@@ -102,17 +108,11 @@ function init()
   params:add_option("root_note", "root note", NOTE_NAMES, 48)
   params:set_action("root_note", set_root_note)
   
-  params:add_number("ghost_offset", "ghost offset", -24, 24, 0)
-  params:set_action("ghost_offset", set_ghost_offset)
-  
-  params:add_number("speed", "speed", 0, 1000, 100)
-  params:set_action("speed", set_speed)
-  
-  params:add_option("play_mode", "play mode", PLAY_MODES, 1)
-  params:set_action("play_mode", set_play_mode)
-  
   params:add_option("play_direction", "play direction", PLAY_DIRECTIONS, 1)
   params:set_action("play_direction", set_play_direction)
+  
+  params:add_number("ghost_offset", "ghost offset", -24, 24, 0)
+  params:set_action("ghost_offset", set_ghost_offset)
   
   params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
@@ -127,11 +127,25 @@ function init()
   
   params:add_number("midi_note_velocity", "midi note velocity", 1, 127, 100)
   
-  -- metro settings
+  root_note = 36
+  scale_name = SCALE_NAMES[13]
+  scale = music.generate_scale_of_length(root_note, scale_name, SCALE_LENGTH)
+  
+  seq_counter = metro.alloc()
   seq_counter.time = bpm_to_seconds_16(params:get("speed"))
   seq_counter.count = -1
   seq_counter.callback = play_seq_step
   
+  note_offset = 0
+  playable_cells = {}
+  play_pos = 0
+  active_notes = {}
+  seq_running = false
+  show_playing_indicator = false
+  
+  init_position()
+  
+  board = {}
   for x=1,GRID_SIZE.X do
     board[x] = {}
     for y=1,GRID_SIZE.Y do
@@ -139,8 +153,12 @@ function init()
     end
   end
   
-  init_position()
   init_engine()
+end
+
+function init_engine()
+  engine.release(params:get("release"))
+  engine.cutoff(params:get("cutoff"))
 end
 
 -- UI handling
@@ -270,6 +288,7 @@ function key(n, z)
   end
   redraw()
 end
+
 
 -- parameter callbacks
 function set_speed(bpm)
@@ -513,11 +532,6 @@ function notes_off()
 end
 
 -- helpers
-function init_engine()
-  engine.release(params:get("release"))
-  engine.cutoff(params:get("cutoff"))
-end
-
 function clone_board(b)
   b_c = {}
   for i=1,#b do
