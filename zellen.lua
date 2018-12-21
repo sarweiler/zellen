@@ -138,6 +138,7 @@ function init()
   
   note_offset = 0
   playable_cells = {}
+  play_pos = 0
   active_notes = {}
   seq_running = false
   show_playing_indicator = false
@@ -238,7 +239,6 @@ function enc(n, d)
     params:delta("play_mode", d)
   end
   if (n == 3) then
-    print("delta: " .. d)
     params:delta("play_direction", d)
   end
   redraw()
@@ -265,7 +265,7 @@ function key(n, z)
           seq_running = false
           show_playing_indicator = false
         else
-          if (seq_mode == 2 and #playable_cells == 0) then
+          if (#playable_cells == 0) then
             generation_step()
           end
           seq_counter:start()
@@ -296,7 +296,6 @@ function set_speed(bpm)
 end
 
 function set_play_mode(play_mode)
-  print("play_mode: " .. play_mode)
   if(play_mode == 3) then
     note_offset = params:get("ghost_offset")
   else
@@ -423,7 +422,6 @@ end
 function collect_playable_cells()
   playable_cells = {}
   local mode = params:get("play_mode")
-  --print("mode: " .. mode)
   for x=1,GRID_SIZE.X do
     for y=1,GRID_SIZE.Y do
       if ((was_born(x, y) or was_reborn(x, y)) and mode == 1) then
@@ -456,8 +454,8 @@ function collect_playable_cells()
 end
 
 function play_seq_step()
-  local seq_mode = params:get("seq_mode")
   local play_direction = params:get("play_direction")
+  local seq_mode = params:get("seq_mode")
   notes_off()
   
   show_playing_indicator = not show_playing_indicator
@@ -473,24 +471,15 @@ function play_seq_step()
         play_pos = play_pos + 1
       end
     else
-      play_pos = play_pos + 1
+      if (play_pos < #playable_cells or seq_mode == 2) then
+        play_pos = play_pos + 1
+      else
+        reset_sequence()
+      end
     end
   else
-    play_pos = 1
     init_position()
-    
-    if(seq_mode == 3) then
-      generation_step()
-      if(not seq_running) then
-        seq_counter:start()
-        seq_running = true
-        show_playing_indicator = true
-      end
-    else
-      seq_counter:stop()
-      seq_running = false
-      show_playing_indicator = false
-    end
+    reset_sequence()
   end
   redraw()
   grid_redraw()
@@ -501,6 +490,25 @@ function init_position()
     ["x"] = -1,
     ["y"] = -1
   }
+end
+
+function reset_sequence()
+  local seq_mode = params:get("seq_mode")
+  play_pos = 1
+  
+  if(seq_mode == 3) then
+    init_position()
+    generation_step()
+    if(not seq_running) then
+      seq_counter:start()
+      seq_running = true
+      show_playing_indicator = true
+    end
+  else
+    seq_counter:stop()
+    seq_running = false
+    show_playing_indicator = false
+  end
 end
 
 -- notes
