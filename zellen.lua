@@ -185,14 +185,13 @@ end
 
 function update_playing_indicator()
   if (params:get("seq_mode") ~= 1) then
-    screen.move(128, 56)
     if (show_playing_indicator) then
       screen.level(15)
-      screen.text_right(PLAYING_INDICATOR)
     else
       screen.level(0)
-      screen.text_right(PLAYING_INDICATOR)
     end
+    screen.rect(125, 53, 3, 3)
+    screen.fill()
   end
 end
 
