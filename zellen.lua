@@ -178,20 +178,21 @@ function redraw()
   screen.move(0, 56)
   screen.text("play direction")
   
+  update_playing_indicator()
+  
   screen.update()
 end
 
-function update_playing_indicator(show)
+function update_playing_indicator()
   if (params:get("seq_mode") ~= 1) then
     screen.move(128, 56)
-    if (show) then
+    if (show_playing_indicator) then
       screen.level(15)
       screen.text_right(PLAYING_INDICATOR)
     else
       screen.level(0)
       screen.text_right(PLAYING_INDICATOR)
     end
-    screen.update()
   end
 end
 
@@ -254,11 +255,11 @@ function key(n, z)
         if(seq_running) then
           seq_counter:stop()
           seq_running = false
-          update_playing_indicator(false)
+          show_playing_indicator = false
         else
           seq_counter:start()
           seq_running = true
-          update_playing_indicator(true)
+          show_playing_indicator = true
         end
       end
     end
@@ -270,10 +271,11 @@ function key(n, z)
     elseif(KEY3_DOWN) then
       seq_counter:stop()
       seq_running = false
-      update_playing_indicator(false)
+      show_playing_indicator = false
       generation_step()
     end
   end
+  redraw()
 end
 
 
@@ -448,7 +450,6 @@ function play_seq_step()
   notes_off()
   
   show_playing_indicator = not show_playing_indicator
-  update_playing_indicator(show_playing_indicator)
   
   if (play_pos <= #playable_cells) then
     position = playable_cells[play_pos]
@@ -472,14 +473,15 @@ function play_seq_step()
       if(not seq_running) then
         seq_counter:start()
         seq_running = true
-        update_playing_indicator(true)
+        show_playing_indicator = true
       end
     else
       seq_counter:stop()
       seq_running = false
-      update_playing_indicator(false)
+      show_playing_indicator = false
     end
   end
+  redraw()
   grid_redraw()
 end
 
