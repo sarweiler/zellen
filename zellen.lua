@@ -194,7 +194,7 @@ local function update_playing_indicator()
 end
 
 
--- game logic helpers
+-- game logic
 local function is_active(x, y)
   return board[x][y] > LEVEL.ALIVE_THRESHOLD
 end
