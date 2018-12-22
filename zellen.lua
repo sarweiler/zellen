@@ -119,18 +119,6 @@ local function clone_board(b)
   return b_c
 end
 
-local function clear_board()
-  for x=1,GRID_SIZE.X do
-    for y=1,GRID_SIZE.Y do
-      board[x][y] = LEVEL.DEAD
-    end 
-  end
-  notes_off()
-  init_position()
-  playable_cells = {}
-  grid_redraw()
-end
-
 local function table_map(f, arr)
   local mapped_arr = {}
   for i,v in ipairs(arr) do
@@ -377,6 +365,18 @@ local function play_seq_step()
     reset_sequence()
   end
   redraw()
+  grid_redraw()
+end
+
+local function clear_board()
+  for x=1,GRID_SIZE.X do
+    for y=1,GRID_SIZE.Y do
+      board[x][y] = LEVEL.DEAD
+    end 
+  end
+  notes_off()
+  init_position()
+  playable_cells = {}
   grid_redraw()
 end
 
