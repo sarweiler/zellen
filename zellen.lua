@@ -9,6 +9,8 @@
 -- KEY3: advance generation
 -- hold KEY1 + press KEY3:
 --   delete board
+-- hold KEY2 + press KEY3:
+--   save state
 --
 -- ENC1: set speed (bpm)
 -- ENC2: set play mode
@@ -455,7 +457,7 @@ function init()
   params:add_number("ghost_offset", "ghost offset", -24, 24, 0)
   params:set_action("ghost_offset", set_ghost_offset)
   
-  params:add_number("speed", "speed", 0, 1000, 100)
+  params:add_number("speed", "bpm", 10, 1000, 100)
   params:set_action("speed", set_speed)
   
   params:add_option("play_mode", "play mode", PLAY_MODES, 1)
