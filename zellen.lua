@@ -195,6 +195,15 @@ local function update_playing_indicator()
   end
 end
 
+local function load_state()
+  params:read("sbaio/zellen.pset")
+  params:bang()
+end
+
+local function save_state()
+  params:write("sbaio/zellen.pset")
+end
+
 
 -- game logic
 local function is_active(x, y)
@@ -493,6 +502,8 @@ function init()
     end
   end
   
+  load_state()
+  
   init_position()
   init_engine()
 end
@@ -506,7 +517,7 @@ function redraw()
   screen.text(params:get("speed"))
   screen.level(7)
   screen.move(0, 16)
-  screen.text("speed")
+  screen.text("bpm")
   
   screen.move(0, 28)
   screen.level(15)
@@ -592,6 +603,8 @@ function key(n, z)
     KEY3_DOWN = z == 1
     if(KEY3_DOWN and KEY1_DOWN) then
       clear_board()
+    elseif(KEY3_DOWN and KEY2_DOWN) then
+      save_state()
     elseif(KEY3_DOWN) then
       seq_counter:stop()
       seq_running = false
