@@ -86,6 +86,8 @@ local active_notes = {}
 local seq_running = false
 local show_playing_indicator = false
 local board = {}
+local beats = {1,1,1,1}
+local beat_step = 0
 
 -- note on/off
 local function note_on(note)
@@ -331,6 +333,7 @@ end
 local function reset_sequence()
   local seq_mode = params:get("seq_mode")
   play_pos = 1
+  beat_step = 1
   
   if(seq_mode == 3) then
     init_position()
@@ -354,26 +357,34 @@ local function play_seq_step()
   
   show_playing_indicator = not show_playing_indicator
   
-  if (play_pos <= #playable_cells) then
-    position = playable_cells[play_pos]
-    local midi_note = scale[(position.x - 1) + position.y]
-    note_on(midi_note)
-    if(play_direction == 4 or play_direction == 5) then
-      if(math.random(2) == 1 and play_pos > 1) then
-        play_pos = play_pos - 1
+  local beat_seq_lengths = #beats
+  
+  if (beats[(beat_step % beat_seq_lengths) + 1] == 1) then
+    if (play_pos <= #playable_cells) then
+      position = playable_cells[play_pos]
+      local midi_note = scale[(position.x - 1) + position.y]
+      note_on(midi_note)
+      if(play_direction == 4 or play_direction == 5) then
+        if(math.random(2) == 1 and play_pos > 1) then
+          play_pos = play_pos - 1
+        else
+          play_pos = play_pos + 1
+        end
+        beat_step = beat_step + 1
       else
-        play_pos = play_pos + 1
+        if (play_pos < #playable_cells or seq_mode == 2) then
+          play_pos = play_pos + 1
+          beat_step = beat_step + 1
+        else
+          reset_sequence()
+        end
       end
     else
-      if (play_pos < #playable_cells or seq_mode == 2) then
-        play_pos = play_pos + 1
-      else
-        reset_sequence()
-      end
+      init_position()
+      reset_sequence()
     end
   else
-    init_position()
-    reset_sequence()
+    beat_step = beat_step + 1
   end
   redraw()
   grid_redraw()
@@ -577,7 +588,9 @@ function key(n, z)
   end
   if (n == 2) then
     KEY2_DOWN = z == 1
-    if (KEY2_DOWN) then
+    if(KEY2_DOWN and KEY1_DOWN) then
+      save_state()
+    elseif (KEY2_DOWN) then
       if(seq_mode == 1) then
         if (#playable_cells == 0) then
           generation_step()
@@ -603,8 +616,6 @@ function key(n, z)
     KEY3_DOWN = z == 1
     if(KEY3_DOWN and KEY1_DOWN) then
       clear_board()
-    elseif(KEY3_DOWN and KEY2_DOWN) then
-      save_state()
     elseif(KEY3_DOWN) then
       seq_counter:stop()
       seq_running = false
