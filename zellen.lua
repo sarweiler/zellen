@@ -22,6 +22,7 @@
 engine.name = "PolyPerc"
 
 local music = require("mark_eats/musicutil")
+local er = require("sbaio/euclideanrhythm")
 local g = grid.connect()
 local m = midi.connect()
 
@@ -86,7 +87,9 @@ local active_notes = {}
 local seq_running = false
 local show_playing_indicator = false
 local board = {}
-local beats = {1,1,1,1}
+local beats = {1}
+local euclid_seq_len = 1
+local euclid_seq_beats = 1
 local beat_step = 0
 
 -- note on/off
@@ -434,6 +437,24 @@ local function set_root_note(new_root_note)
   scale = music.generate_scale_of_length(new_root_note, scale_name, SCALE_LENGTH)
 end
 
+local function set_euclid_seq_len(new_euclid_seq_len)
+  if (new_euclid_seq_len < euclid_seq_beats) then
+    new_euclid_seq_len = euclid_seq_beats
+    params:set("euclid_seq_len", new_euclid_seq_len)
+  end
+  euclid_seq_len = new_euclid_seq_len
+  beats = er.beat_as_table(new_euclid_seq_len, euclid_seq_beats)
+end
+
+local function set_euclid_seq_beats(new_euclid_seq_beats)
+  if(new_euclid_seq_beats > euclid_seq_len) then
+    new_euclid_seq_beats = euclid_seq_len
+    params:set("euclid_seq_beats", new_euclid_seq_beats)
+  end
+  euclid_seq_beats = new_euclid_seq_beats
+  beats = er.beat_as_table(euclid_seq_len, new_euclid_seq_beats)
+end
+
 local function set_release(r)
   engine.release(r)
 end
@@ -486,11 +507,23 @@ function init()
   params:add_option("play_direction", "play direction", PLAY_DIRECTIONS, 1)
   params:set_action("play_direction", set_play_direction)
   
+  params:add_separator()
+  
+  params:add_number("euclid_seq_len", "euclid seq length", 1, 100, 1)
+  params:set_action("euclid_seq_len", set_euclid_seq_len)
+  
+  params:add_number("euclid_seq_beats", "euclid seq beats", 1, 100, 1)
+  params:set_action("euclid_seq_beats", set_euclid_seq_beats)
+  
+  params:add_separator()
+  
   params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
   
   params:add_control("cutoff", "cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
   params:set_action("cutoff", set_cutoff)
+  
+  params:add_separator()
   
   params:add_option("synth", "synth", SYNTHS, 3)
   
@@ -638,5 +671,4 @@ g.event = function(x, y, z)
   end
   grid_redraw()
 end
-
 
