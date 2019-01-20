@@ -336,7 +336,9 @@ end
 local function reset_sequence()
   local seq_mode = params:get("seq_mode")
   play_pos = 1
-  beat_step = 1
+  if (params:get("euclid_reset") == 1) then
+    beat_step = 1
+  end
   
   if(seq_mode == 3) then
     init_position()
@@ -515,6 +517,8 @@ function init()
   params:add_number("euclid_seq_beats", "euclid seq beats", 1, 100, 1)
   params:set_action("euclid_seq_beats", set_euclid_seq_beats)
   
+  params:add_option("euclid_reset", "reset seq at start of gen", { "Y", "N" }, 1)
+  
   params:add_separator()
   
   params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
@@ -671,4 +675,3 @@ g.event = function(x, y, z)
   end
   grid_redraw()
 end
-
