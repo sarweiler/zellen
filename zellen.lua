@@ -340,9 +340,11 @@ local function reset_sequence()
     beat_step = 1
   end
   
-  if(seq_mode == 3) then
-    init_position()
-    generation_step()
+  if(seq_mode == 3 or (seq_mode == 2 and params:get("loop_semi_auto_seq") == 1)) then
+    if(seq_mode == 3) then
+      init_position()
+      generation_step()
+    end
     if(not seq_running) then
       seq_counter:start()
       seq_running = true
@@ -490,6 +492,7 @@ function init()
   
   -- params
   params:add_option("seq_mode", "seq mode", SEQ_MODES, 2)
+  params:add_option("loop_semi_auto_seq", "loop seq in semi-auto mode", {"Y", "N"}, 2)
   
   params:add_option("scale", "scale", SCALE_NAMES, 1)
   params:set_action("scale", set_scale)
@@ -655,9 +658,11 @@ function key(n, z)
     if(KEY3_DOWN and KEY1_DOWN) then
       clear_board()
     elseif(KEY3_DOWN) then
-      seq_counter:stop()
-      seq_running = false
-      show_playing_indicator = false
+      if(not (seq_mode == 2 and params:get("loop_semi_auto_seq") == 1)) then
+        seq_counter:stop()
+        seq_running = false
+        show_playing_indicator = false
+      end
       generation_step()
     end
   end
