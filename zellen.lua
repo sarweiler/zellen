@@ -507,7 +507,7 @@ function init()
   
   -- params
   params:add_option("seq_mode", "seq mode", SEQ_MODES, 2)
-  params:add_option("loop_semi_auto_seq", "loop seq in semi-auto mode", {"Y", "N"}, 1)
+  params:add_option("loop_semi_auto_seq", "loop gen in semi-auto mode", {"Y", "N"}, 1)
   
   params:add_option("scale", "scale", SCALE_NAMES, 1)
   params:set_action("scale", set_scale)
