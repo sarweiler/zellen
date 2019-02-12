@@ -9,7 +9,7 @@
 -- KEY3: advance generation
 -- hold KEY1 + press KEY3:
 --   delete board
--- hold KEY2 + press KEY3:
+-- hold KEY1 + press KEY2:
 --   save parameters
 --
 -- ENC1: set speed (bpm)
