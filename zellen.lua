@@ -21,15 +21,15 @@
 
 engine.name = "PolyPerc"
 
-local music = require("mark_eats/musicutil")
+local music = require("musicutil")
 local er = require("er")
 local g = grid.connect()
 local m = midi.connect()
 
 -- constants
 local GRID_SIZE = {
-  ["X"] = 16,
-  ["Y"] = 8
+  ["X"] = g.cols,
+  ["Y"] = g.rows
 }
 local LEVEL = {
   ["ALIVE"] = 8,
@@ -79,7 +79,7 @@ local KEY3_DOWN = false
 local root_note = 36
 local scale_name = ""
 local scale = {}
-local seq_counter = metro.alloc()
+local seq_counter = metro.init()
 local note_offset = 0
 local playable_cells = {}
 local play_pos = 0
@@ -115,14 +115,14 @@ local function note_on(note)
     else
       velocity = math.max(velocity - velocity_variance, 0)
     end
-    m.note_on(note_num, velocity, params:get("midi_channel"))
+    m:note_on(note_num, velocity, params:get("midi_channel"))
   end
   table.insert(active_notes, note_num)
 end
 
 local function notes_off()
   for i=1,#active_notes do
-    m.note_off(active_notes[i], 0, params:get("midi_channel"))
+    m:note_off(active_notes[i], 0, params:get("midi_channel"))
   end
   active_notes = {}
 end
@@ -216,13 +216,13 @@ local function update_playing_indicator()
 end
 
 local function load_state()
-  params:read("sbaio/zellen.pset")
+  params:read("zellen.pset")
   params:bang()
 end
 
-local function save_state()
-  params:write("sbaio/zellen.pset")
-end
+--local function save_state()
+--  params:write("sbaio/zellen.pset")
+--end
 
 
 -- game logic
@@ -482,11 +482,6 @@ local function set_cutoff(f)
   engine.cutoff(f)
 end
 
-local function set_midi_device_number()
-  m:disconnect()
-  m:reconnect(params:get("midi_device_number"))
-end
-
 
 -------------
 -- GLOBALS --
@@ -552,8 +547,6 @@ function init()
   params:add_option("synth", "synth", SYNTHS, 3)
   
   params:add_number("midi_channel", "midi channel", 1, 16, 1)
-  params:add_number("midi_device_number", "midi device number", 1, 5, 1)
-  params:set_action("midi_device_number", set_midi_device_number)
   
   params:add_control("midi_note_velocity", "midi note velocity", controlspec.new(1, 127, "lin", 1, 100, ""))
   params:add_control("midi_velocity_var", "midi velocity variance", controlspec.new(1, 100, "lin", 1, 20, ""))
@@ -563,7 +556,7 @@ function init()
   
   seq_counter.time = bpm_to_seconds_16(params:get("speed"))
   seq_counter.count = -1
-  seq_counter.callback = play_seq_step
+  seq_counter.event = play_seq_step
   
   for x=1,GRID_SIZE.X do
   board[x] = {}
@@ -610,17 +603,17 @@ end
 
 -- grid UI
 function grid_redraw()
-  g.all(0)
+  g:all(0)
   for x=1,GRID_SIZE.X do
     for y=1,GRID_SIZE.Y do
       if (position.x == x and position.y == y) then
-        g.led(x, y, LEVEL.ACTIVE)
+        g:led(x, y, LEVEL.ACTIVE)
       else
-        g.led(x, y, board[x][y])
+        g:led(x, y, board[x][y])
       end
     end
   end
-  g.refresh()
+  g:refresh()
 end
 
 
@@ -689,7 +682,7 @@ end
 
 
 -- GRID input handling
-g.event = function(x, y, z)
+g.key = function(x, y, z)
   if (z == 1) then
     if (is_active(x, y)) then
       board[x][y] = LEVEL.DEAD
@@ -699,3 +692,4 @@ g.event = function(x, y, z)
   end
   grid_redraw()
 end
+
