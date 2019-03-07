@@ -216,10 +216,12 @@ local function update_playing_indicator()
 end
 
 local function load_state()
+  -- TODO: load board state
   params:read("zellen.pset")
   params:bang()
 end
 
+-- TODO: save board state
 --local function save_state()
 --  params:write("sbaio/zellen.pset")
 --end
@@ -641,7 +643,8 @@ function key(n, z)
   if (n == 2) then
     KEY2_DOWN = z == 1
     if(KEY2_DOWN and KEY1_DOWN) then
-      save_state()
+      -- TODO: save board state
+      --save_state()
     elseif (KEY2_DOWN) then
       if(seq_mode == 1) then
         if (#playable_cells == 0) then
