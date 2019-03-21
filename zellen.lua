@@ -536,7 +536,7 @@ function init()
   
   params:add_separator()
   
-  params:add_control("amp", "amp", controlspec.new(0.1, 1.0, "lin", 0.01, 0.3, ""))
+  params:add_control("amp", "amp", controlspec.new(0.1, 1.0, "lin", 0.01, 0.8, ""))
 
   params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
