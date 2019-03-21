@@ -217,7 +217,7 @@ end
 
 local function load_state()
   -- TODO: load board state
-  params:read("zellen.pset")
+  params:read(_path.data .. "zellen/zellen.pset")
   params:bang()
 end
 
