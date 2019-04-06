@@ -22,6 +22,7 @@
 engine.name = "PolyPerc"
 
 local music = require("musicutil")
+local beatclock = require("beatclock")
 local er = require("er")
 local g = grid.connect()
 local m = midi.connect()
@@ -79,7 +80,12 @@ local KEY3_DOWN = false
 local root_note = 36
 local scale_name = ""
 local scale = {}
-local seq_counter = metro.init()
+
+-- beatclock
+local clk = beatclock.new()
+local clk_midi = midi.connect()
+clk_midi.event = clk.process_midi
+
 local note_offset = 0
 local playable_cells = {}
 local play_pos = 0
@@ -192,10 +198,6 @@ local function note_name_to_num(name)
   end
   local note_index = NOTE_NAME_INDEX[note_name]
   return tonumber(octave) * 12 + note_index
-end
-
-local function bpm_to_seconds_16(bpm)
-  return 60 / bpm / 4
 end
 
 local function init_engine()
@@ -363,18 +365,19 @@ local function reset_sequence()
       generation_step()
     end
     if(not seq_running) then
-      seq_counter:start()
+      clk:start()
       seq_running = true
       show_playing_indicator = true
     end
   else
-    seq_counter:stop()
+    clk:stop()
     seq_running = false
     show_playing_indicator = false
   end
 end
 
 local function play_seq_step()
+  
   local play_direction = params:get("play_direction")
   local seq_mode = params:get("seq_mode")
   notes_off()
@@ -396,7 +399,7 @@ local function play_seq_step()
         end
         beat_step = beat_step + 1
       else
-        if (play_pos < #playable_cells or seq_mode == 2) then
+        if (play_pos < #playable_cells or (seq_mode == 2  and not params:get("loop_semi_auto_seq") == 1)) then
           play_pos = play_pos + 1
           beat_step = beat_step + 1
         else
@@ -428,9 +431,6 @@ end
 
 
 -- parameter callbacks
-local function set_speed(bpm)
-  seq_counter.time = bpm_to_seconds_16(bpm)
-end
 
 local function set_play_mode(play_mode)
   if(play_mode == 3) then
@@ -515,15 +515,18 @@ function init()
   params:add_number("ghost_offset", "ghost offset", -24, 24, 0)
   params:set_action("ghost_offset", set_ghost_offset)
   
-  params:add_number("speed", "bpm", 10, 1000, 100)
-  params:set_action("speed", set_speed)
-  
   params:add_option("play_mode", "play mode", PLAY_MODES, 1)
   params:set_action("play_mode", set_play_mode)
   
   params:add_option("play_direction", "play direction", PLAY_DIRECTIONS, 1)
   params:set_action("play_direction", set_play_direction)
   
+  params:add_separator()
+  
+  clk.on_step = play_seq_step
+  clk.on_select_external = function() print("external") end
+  clk:add_clock_params()
+
   params:add_separator()
   
   params:add_number("euclid_seq_len", "euclid seq length", 1, 100, 1)
@@ -556,10 +559,6 @@ function init()
   scale_name = SCALE_NAMES[13]
   scale = music.generate_scale_of_length(root_note, scale_name, SCALE_LENGTH)
   
-  seq_counter.time = bpm_to_seconds_16(params:get("speed"))
-  seq_counter.count = -1
-  seq_counter.event = play_seq_step
-  
   for x=1,GRID_SIZE.X do
   board[x] = {}
     for y=1,GRID_SIZE.Y do
@@ -579,7 +578,7 @@ function redraw()
   screen.clear()
   screen.move(0, 8)
   screen.level(15)
-  screen.text(params:get("speed"))
+  screen.text(params:get("bpm"))
   screen.level(7)
   screen.move(0, 16)
   screen.text("bpm")
@@ -653,14 +652,14 @@ function key(n, z)
         play_seq_step()
       elseif(seq_mode == 2 or seq_mode == 3) then
         if(seq_running) then
-          seq_counter:stop()
+          clk:stop()
           seq_running = false
           show_playing_indicator = false
         else
           if (#playable_cells == 0) then
             generation_step()
           end
-          seq_counter:start()
+          clk:start()
           seq_running = true
           show_playing_indicator = true
         end
@@ -673,7 +672,7 @@ function key(n, z)
       clear_board()
     elseif(KEY3_DOWN) then
       if(not (seq_mode == 2 and params:get("loop_semi_auto_seq") == 1)) then
-        seq_counter:stop()
+        clk:stop()
         seq_running = false
         show_playing_indicator = false
       end
@@ -695,4 +694,3 @@ g.key = function(x, y, z)
   end
   grid_redraw()
 end
-
