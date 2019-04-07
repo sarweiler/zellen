@@ -621,7 +621,7 @@ end
 -- ENC input handling
 function enc(n, d)
   if (n == 1) then
-    params:delta("speed", d)
+    params:delta("bpm", d)
   end
   if (n == 2) then
     params:delta("play_mode", d)
