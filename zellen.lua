@@ -25,7 +25,6 @@ local music = require("musicutil")
 local beatclock = require("beatclock")
 local er = require("er")
 local g = grid.connect()
-local m = midi.connect()
 
 -- constants
 local GRID_SIZE = {
@@ -83,8 +82,9 @@ local scale = {}
 
 -- beatclock
 local clk = beatclock.new()
-local clk_midi = midi.connect()
-clk_midi.event = clk.process_midi
+local midi_out = midi.connect(1)
+local midi_in = midi.connect(1)
+midi_in.event = function(data) clk:process_midi(data) end
 
 local note_offset = 0
 local playable_cells = {}
@@ -121,14 +121,14 @@ local function note_on(note)
     else
       velocity = math.max(velocity - velocity_variance, 0)
     end
-    m:note_on(note_num, velocity, params:get("midi_channel"))
+    midi_out:note_on(note_num, velocity, params:get("midi_channel"))
   end
   table.insert(active_notes, note_num)
 end
 
 local function notes_off()
   for i=1,#active_notes do
-    m:note_off(active_notes[i], 0, params:get("midi_channel"))
+    midi_out:note_off(active_notes[i], 0, params:get("midi_channel"))
   end
   active_notes = {}
 end
@@ -484,6 +484,16 @@ local function set_cutoff(f)
   engine.cutoff(f)
 end
 
+local function set_midi_out_device_number()
+  midi_out = midi.connect(params:get("midi_out_device_number"))
+end
+
+local function set_midi_in_device_number()
+  midi_in.event = nil
+  midi_in = midi.connect(params:get("midi_in_device_number"))
+  midi_in.event = function(data) clk:process_midi(data) end
+end
+
 
 -------------
 -- GLOBALS --
@@ -522,11 +532,7 @@ function init()
   params:set_action("play_direction", set_play_direction)
   
   params:add_separator()
-  
-  clk.on_step = play_seq_step
-  clk.on_select_external = function() print("external") end
   clk:add_clock_params()
-
   params:add_separator()
   
   params:add_number("euclid_seq_len", "euclid seq length", 1, 100, 1)
@@ -551,10 +557,16 @@ function init()
   
   params:add_option("synth", "synth", SYNTHS, 3)
   
-  params:add_number("midi_channel", "midi channel", 1, 16, 1)
-  
   params:add_control("midi_note_velocity", "midi note velocity", controlspec.new(1, 127, "lin", 1, 100, ""))
   params:add_control("midi_velocity_var", "midi velocity variance", controlspec.new(1, 100, "lin", 1, 20, ""))
+  
+  params:add_number("midi_channel", "midi channel", 1, 16, 1)
+  
+  params:add_number("midi_out_device_number", "midi out device number", 1, 4, 1)
+  params:set_action("midi_out_device_number", set_midi_out_device_number)
+  
+  params:add_number("midi_in_device_number", "midi in device number", 1, 4, 1)
+  params:set_action("midi_in_device_number", set_midi_in_device_number)
   
   scale_name = SCALE_NAMES[13]
   scale = music.generate_scale_of_length(root_note, scale_name, SCALE_LENGTH)
@@ -570,6 +582,8 @@ function init()
   
   init_position()
   init_engine()
+  
+  clk.on_step = play_seq_step
 end
 
 
@@ -578,7 +592,11 @@ function redraw()
   screen.clear()
   screen.move(0, 8)
   screen.level(15)
-  screen.text(params:get("bpm"))
+  if not clk.external then
+    screen.text(params:get("bpm"))
+  else
+    screen.text("(midi clock)")
+  end
   screen.level(7)
   screen.move(0, 16)
   screen.text("bpm")
