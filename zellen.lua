@@ -27,7 +27,7 @@ local music = require("musicutil")
 local beatclock = require("beatclock")
 local er = require("er")
 local g = grid.connect()
-local list = include("linkedlist") --borrowed circular linked list library we dont use the circular part... yet.
+local list = include("lib/linkedlist") --borrowed circular linked list library we dont use the circular part... yet.
 
 -- constants
 local GRID_SIZE = {
