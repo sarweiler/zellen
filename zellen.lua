@@ -16,6 +16,8 @@
 -- ENC2: set play mode
 -- ENC3: set play direction
 --
+-- hold KEY3 + ENC3: time jog
+--
 -- see the parameters screen
 -- for more settings.
 
