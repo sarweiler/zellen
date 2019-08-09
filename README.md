@@ -11,6 +11,7 @@ A sequencer for Monome norns based on [Conway's Game of Life](https://en.wikiped
 * ENC1: set speed (bpm)
 * ENC2: set play mode (see below)
 * ENC3: set play direction (see below)
+* hold KEY3 + ENC3: time jog
 
 ### Play Modes
 
