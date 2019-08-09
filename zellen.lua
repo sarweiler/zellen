@@ -16,6 +16,8 @@
 -- ENC2: set play mode
 -- ENC3: set play direction
 --
+-- hold KEY3 + ENC3: time jog
+--
 -- see the parameters screen
 -- for more settings.
 
@@ -25,6 +27,7 @@ local music = require("musicutil")
 local beatclock = require("beatclock")
 local er = require("er")
 local g = grid.connect()
+local list = include("lib/linkedlist") --borrowed circular linked list library we dont use the circular part... yet.
 
 -- constants
 local GRID_SIZE = {
@@ -97,6 +100,8 @@ local beats = {true}
 local euclid_seq_len = 1
 local euclid_seq_beats = 1
 local beat_step = 0
+
+local the_past = {} --constructed on init. This linked list will hold ancestral boards so we may visit the past
 
 -- note on/off
 local function note_on(note)
@@ -310,7 +315,17 @@ local function collect_playable_cells()
   end
 end
 
+local function do_the_time_warp()
+  board = clone_board(the_past.value) --set the board equal to the first entry in the past (last generation)
+  the_past = list.eraseBackward(the_past) --remove the future. Because the future is deterministic.
+  play_pos = 1
+  collect_playable_cells()
+  grid_redraw()
+end
+
 local function generation_step()
+  the_past = list.insert(the_past, clone_board(board))
+  print(list.getNodeCount(the_past))
   notes_off()
   local board_c = clone_board(board)
   for x=1,GRID_SIZE.X do
@@ -577,7 +592,7 @@ function init()
       board[x][y] = LEVEL.DEAD
     end
   end
-  
+  the_past = list.construct(clone_board(board)) -- initial construction of the past with a single 'dead' board
   load_state()
   
   init_position()
@@ -645,7 +660,15 @@ function enc(n, d)
     params:delta("play_mode", d)
   end
   if (n == 3) then
-    params:delta("play_direction", d)
+    if (KEY3_DOWN == false) then
+      params:delta("play_direction", d)
+    else
+      if (d == 1) then
+        generation_step()
+      else
+        do_the_time_warp()
+      end
+    end
   end
   redraw()
 end
@@ -689,12 +712,12 @@ function key(n, z)
     if(KEY3_DOWN and KEY1_DOWN) then
       clear_board()
     elseif(KEY3_DOWN) then
-      if(not (seq_mode == 2 and params:get("loop_semi_auto_seq") == 1)) then
+      if(not (seq_mode == 2 and params:get("loop_semi_auto_seq") == 1)) then --true only if semi-auto and loop
         clk:stop()
         seq_running = false
         show_playing_indicator = false
       end
-      generation_step()
+      generation_step() --if you continue to hold key 3 you can twist enc3 for lots of generations
     end
   end
   redraw()
