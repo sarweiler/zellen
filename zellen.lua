@@ -314,14 +314,10 @@ local function collect_playable_cells()
 end
 
 local function do_the_time_warp()
-  board = clone_board(the_past.value)
-  --the_past = the_past.prev
-
+  board = clone_board(the_past.value) --set the board equal to the first entry in the past (last generation)
+  the_past = list.eraseBackward(the_past) --remove the future. Because the future is deterministic.
   play_pos = 1
-  --collect_playable_cells_from_past()
-  --the_past.next = nil
-  the_past = list.eraseBackward(the_past)
-  print(list.getNodeCount(the_past))
+  collect_playable_cells()
   grid_redraw()
 end
 
