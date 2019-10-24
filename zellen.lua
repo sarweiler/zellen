@@ -235,24 +235,50 @@ end
 
 
 -- game logic
+local function x_coord_wrap(x)
+  x_mod = (x == 0 or x == GRID_SIZE.X) and GRID_SIZE.X or math.max(1, x % GRID_SIZE.X)
+  if ((x <= GRID_SIZE.X and x >= 1) and x ~= x_mod) then
+    print(x .. " / " .. x_mod)
+  end
+  return (x == 0 or x == GRID_SIZE.X) and GRID_SIZE.X or math.max(1, x % GRID_SIZE.X)
+end
+
+local function y_coord_wrap(y)
+  y_mod = (y == 0 or y == GRID_SIZE.Y) and GRID_SIZE.Y or math.max(1, y % GRID_SIZE.Y)
+  if ((y <= GRID_SIZE.Y and y >= 1) and y ~= y_mod) then
+    print(y .. " / " .. y_mod)
+  end
+  return (y == 0 or y == GRID_SIZE.Y) and GRID_SIZE.Y or math.max(1, y % GRID_SIZE.Y)
+end
+
 local function is_active(x, y)
-  return board[x][y] > LEVEL.ALIVE_THRESHOLD
+  return board[x_coord_wrap(x)][y_coord_wrap(y)] > LEVEL.ALIVE_THRESHOLD
 end
 
 local function is_dying(x, y)
-  return board[x][y] == LEVEL.DYING
+  return board[x_coord_wrap(x)][y_coord_wrap(y)] == LEVEL.DYING
 end
 
 local function was_born(x, y)
-  return board[x][y] == LEVEL.BORN
+  return board[x_coord_wrap(x)][y_coord_wrap(y)] == LEVEL.BORN
 end
 
 local function was_reborn(x, y)
-  return board[x][y] == LEVEL.REBORN
+  return board[x_coord_wrap(x)][y_coord_wrap(y)] == LEVEL.REBORN
 end
 
 local function number_of_neighbors(x, y)
   local num_neighbors = 0
+  num_neighbors = num_neighbors + (is_active(x + 1, y) and 1 or 0)
+  num_neighbors = num_neighbors + (is_active(x - 1, y) and 1 or 0)
+  num_neighbors = num_neighbors + (is_active(x, y + 1) and 1 or 0)
+  num_neighbors = num_neighbors + (is_active(x, y - 1) and 1 or 0)
+  num_neighbors = num_neighbors + (is_active(x + 1, y + 1) and 1 or 0)
+  num_neighbors = num_neighbors + (is_active(x + 1, y - 1) and 1 or 0)
+  num_neighbors = num_neighbors + (is_active(x - 1, y + 1) and 1 or 0)
+  num_neighbors = num_neighbors + (is_active(x - 1, y - 1) and 1 or 0)
+
+  --[[
   if (x < GRID_SIZE.X) then
     num_neighbors = num_neighbors + (is_active(x + 1, y) and 1 or 0)
   end
@@ -277,6 +303,7 @@ local function number_of_neighbors(x, y)
   if (x > 1 and y > 1) then
     num_neighbors = num_neighbors + (is_active(x - 1, y - 1) and 1 or 0)
   end
+  ]]--
   
   return num_neighbors
 end
@@ -325,7 +352,6 @@ end
 
 local function generation_step()
   the_past = list.insert(the_past, clone_board(board))
-  print(list.getNodeCount(the_past))
   notes_off()
   local board_c = clone_board(board)
   for x=1,GRID_SIZE.X do
