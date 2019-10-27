@@ -93,6 +93,9 @@ local state = {
     current = {},
     the_past = {} --constructed on init. This linked list will hold ancestral boards so we may visit the past
   },
+  seq = {
+    position = {}
+  },
   root_note = 36,
   scale_name = "",
   scale = {},
@@ -333,7 +336,7 @@ end
 
 -- sequencing
 local function init_position()
-  position = {
+  state.seq.position = {
     ["x"] = -1,
     ["y"] = -1
   }
@@ -375,8 +378,8 @@ local function play_seq_step()
   
   if (state.beats[(state.beat_step % beat_seq_lengths) + 1] or seq_mode == 1) then
     if (state.play_pos <= #state.playable_cells) then
-      position = state.playable_cells[state.play_pos]
-      local midi_note = scale[(position.x - 1) + position.y]
+      state.seq.position = state.playable_cells[state.play_pos]
+      local midi_note = scale[(state.seq.position.x - 1) + state.seq.position.y]
       note_on(midi_note)
       if(play_direction == 4 or play_direction == 5) then
         if(math.random(2) == 1 and state.play_pos > 1) then
@@ -612,7 +615,7 @@ function grid_redraw()
   g:all(0)
   for x=1,config.GRID.SIZE.X do
     for y=1,config.GRID.SIZE.Y do
-      if (position.x == x and position.y == y) then
+      if (state.seq.position.x == x and state.seq.position.y == y) then
         g:led(x, y, config.GRID.LEVEL.ACTIVE)
       else
         g:led(x, y, state.board.current[x][y])
