@@ -4,8 +4,8 @@ local helpers = {
   table = {}
 }
 
-helpers.table.clone = function(org)
-  return {table.unpack(org)}
+helpers.table.clone = function(orig_tab)
+  return {table.unpack(orig_tab)}
 end
 
 helpers.table.map = function(f, arr)
@@ -24,12 +24,13 @@ helpers.table.reverse = function(arr)
   return rev_arr
 end
 
-helpers.table.shuffle = function(arr)
-  for i = #arr, 2, -1 do
+helpers.table.shuffle = function(orig_tab)
+  local tab = {table.unpack(orig_tab)}
+  for i = #tab, 2, -1 do
     local j = math.random(i)
-    arr[i], arr[j] = arr[j], arr[i]
+    tab[i], tab[j] = tab[j], tab[i]
   end
-  return arr
+  return tab
 end
 
 helpers.clone_board = function(b)
