@@ -81,11 +81,12 @@ local CONFIG = {
   },
 }
 
-local KEY1_DOWN = false
-local KEY2_DOWN = false
-local KEY3_DOWN = false
-
 -- initial values
+local key_state = {
+  key1_down = false,
+  key2_down = false,
+  key3_down = false
+}
 local root_note = 36
 local scale_name = ""
 local scale = {}
@@ -693,7 +694,7 @@ function enc(n, d)
     params:delta("play_mode", d)
   end
   if (n == 3) then
-    if (KEY3_DOWN == false) then
+    if (keystate.key3_down == false) then
       params:delta("play_direction", d)
     else
       if (d == 1) then
@@ -711,14 +712,14 @@ end
 function key(n, z)
   local seq_mode = params:get("seq_mode")
   if (n == 1) then
-    KEY1_DOWN = z == 1
+    keystate.key1_down = z == 1
   end
   if (n == 2) then
-    KEY2_DOWN = z == 1
-    if(KEY2_DOWN and KEY1_DOWN) then
+    keystate.key2_down = z == 1
+    if(keystate.key2_down and keystate.key1_down) then
       -- TODO: save board state
       --save_state()
-    elseif (KEY2_DOWN) then
+    elseif (keystate.key2_down) then
       if(seq_mode == 1) then
         if (#playable_cells == 0) then
           generation_step()
@@ -741,10 +742,10 @@ function key(n, z)
     end
   end
   if (n == 3) then
-    KEY3_DOWN = z == 1
-    if(KEY3_DOWN and KEY1_DOWN) then
+    keystate.key3_down = z == 1
+    if(keystate.key3_down and keystate.key1_down) then
       clear_board()
-    elseif(KEY3_DOWN) then
+    elseif(keystate.key3_down) then
       if(not (seq_mode == 2 and params:get("loop_semi_auto_seq") == 1)) then --true only if semi-auto and loop
         clk:stop()
         seq_running = false
