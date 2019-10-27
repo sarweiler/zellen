@@ -50,9 +50,9 @@ local config = {
   },
   MUSIC = {
     NOTE_NAMES_OCTAVE = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"},
-    NOTES = {},
-    NOTE_NAMES = {},
-    SCALE_NAMES = {},
+    NOTES = {}, -- constructed on init
+    NOTE_NAMES = {}, -- constructed on init
+    SCALE_NAMES = {}, -- constructed on init
     SCALE_LENGTH = 24
   },
   SEQ = {
@@ -88,6 +88,10 @@ local state = {
     key2_down = false,
     key3_down = false
   },
+  board = {
+    current = {},
+    the_past = {} --constructed on init. This linked list will hold ancestral boards so we may visit the past
+  },
   root_note = 36,
   scale_name = "",
   scale = {},
@@ -100,9 +104,7 @@ local state = {
   beats = {true},
   euclid_seq_len = 1,
   euclid_seq_beats = 1,
-  beat_step = 0,
-  board = {},
-  the_past = {} --constructed on init. This linked list will hold ancestral boards so we may visit the past
+  beat_step = 0
 }
 
 -- beatclock
@@ -260,19 +262,19 @@ local function y_coord_wrap(y)
 end
 
 local function is_active(x, y)
-  return state.board[x_coord_wrap(x)][y_coord_wrap(y)] > config.GRID.LEVEL.ALIVE_THRESHOLD
+  return state.board.current[x_coord_wrap(x)][y_coord_wrap(y)] > config.GRID.LEVEL.ALIVE_THRESHOLD
 end
 
 local function is_dying(x, y)
-  return state.board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.DYING
+  return state.board.current[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.DYING
 end
 
 local function was_born(x, y)
-  return state.board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.BORN
+  return state.board.current[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.BORN
 end
 
 local function was_reborn(x, y)
-  return state.board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.REBORN
+  return state.board.current[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.REBORN
 end
 
 local function number_of_neighbors(x, y)
@@ -351,17 +353,17 @@ local function collect_playable_cells()
 end
 
 local function do_the_time_warp()
-  state.board = clone_board(state.the_past.value) --set the board equal to the first entry in the past (last generation)
-  state.the_past = list.eraseBackward(state.the_past) --remove the future. Because the future is deterministic.
+  state.board.current = clone_board(state.board.the_past.value) --set the board equal to the first entry in the past (last generation)
+  state.board.the_past = list.eraseBackward(state.board.the_past) --remove the future. Because the future is deterministic.
   state.play_pos = 1
   collect_playable_cells()
   grid_redraw()
 end
 
 local function generation_step()
-  state.the_past = list.insert(state.the_past, clone_board(state.board))
+  state.board.the_past = list.insert(state.board.the_past, clone_board(state.board.current))
   notes_off()
-  local board_c = clone_board(state.board)
+  local board_c = clone_board(state.board.current)
   for x=1,config.GRID.SIZE.X do
     for y=1,config.GRID.SIZE.Y do
       local num_neighbors = number_of_neighbors(x, y)
@@ -386,7 +388,7 @@ local function generation_step()
       end
     end
   end
-  state.board = board_c
+  state.board.current = board_c
   state.play_pos = 1
   collect_playable_cells()
   grid_redraw()
@@ -469,7 +471,7 @@ end
 local function clear_board()
   for x=1,config.GRID.SIZE.X do
     for y=1,config.GRID.SIZE.Y do
-      state.board[x][y] = config.GRID.LEVEL.DEAD
+      state.board.current[x][y] = config.GRID.LEVEL.DEAD
     end 
   end
   notes_off()
@@ -621,12 +623,12 @@ function init()
   state.scale= music.generate_scale_of_length(state.root_note, state.scale_name, config.MUSIC.SCALE_LENGTH)
   
   for x=1,config.GRID.SIZE.X do
-  state.board[x] = {}
+  state.board.current[x] = {}
     for y=1,config.GRID.SIZE.Y do
-      state.board[x][y] = config.GRID.LEVEL.DEAD
+      state.board.current[x][y] = config.GRID.LEVEL.DEAD
     end
   end
-  state.the_past = list.construct(clone_board(state.board)) -- initial construction of the past with a single 'dead' board
+  state.board.the_past = list.construct(clone_board(state.board.current)) -- initial construction of the past with a single 'dead' board
   load_state()
   
   init_position()
@@ -677,7 +679,7 @@ function grid_redraw()
       if (position.x == x and position.y == y) then
         g:led(x, y, config.GRID.LEVEL.ACTIVE)
       else
-        g:led(x, y, state.board[x][y])
+        g:led(x, y, state.board.current[x][y])
       end
     end
   end
@@ -762,9 +764,9 @@ end
 g.key = function(x, y, z)
   if (z == 1) then
     if (is_active(x, y)) then
-      state.board[x][y] = config.GRID.LEVEL.DEAD
+      state.board.current[x][y] = config.GRID.LEVEL.DEAD
     else
-      state.board[x][y] = config.GRID.LEVEL.ALIVE
+      state.board.current[x][y] = config.GRID.LEVEL.ALIVE
     end
   end
   grid_redraw()
