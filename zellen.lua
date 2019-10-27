@@ -24,6 +24,7 @@
 engine.name = "PolyPerc"
 
 -- local z_params = include("lib/z_params")
+local helpers = include("lib/helpers")
 
 local music = require("musicutil")
 local beatclock = require("beatclock")
@@ -150,71 +151,6 @@ end
 
 
 -- helpers
-local function table_clone(org)
-  return {table.unpack(org)}
-end
-
-local function clone_board(b)
-  b_c = {}
-  for i=1,#b do
-    b_c[i] = table_clone(b[i])
-  end
-  return b_c
-end
-
-local function table_map(f, arr)
-  local mapped_arr = {}
-  for i,v in ipairs(arr) do
-    mapped_arr[i] = f(v)
-  end
-  return mapped_arr
-end
-
-local function table_reverse(arr)
-  local rev_arr = {}
-  for i = #arr, 1, -1 do
-    table.insert(rev_arr, arr[i])
-  end
-  return rev_arr
-end
-
-local function table_shuffle(arr)
-  for i = #arr, 2, -1 do
-    local j = math.random(i)
-    arr[i], arr[j] = arr[j], arr[i]
-  end
-  return arr
-end
-
-local function note_name_to_num(name)
-  local NOTE_NAME_INDEX = {
-    ["C"] = 0,
-    ["C#"] = 1,
-    ["D"] = 2,
-    ["D#"] = 3,
-    ["E"] = 4,
-    ["F"] = 5,
-    ["F#"] = 6,
-    ["G"] = 7,
-    ["G#"] = 8,
-    ["A"] = 9,
-    ["A#"] = 10,
-    ["B"] = 11
-  }
-  local name_len = #name
-  local note_name = "C"
-  local octave = "0"
-  if (name_len == 2) then
-    note_name = name:sub(1,1)
-    octave = name:sub(2,2)
-  elseif (name_len == 3) then
-    note_name = name:sub(1,2)
-    octave = name:sub(3,3)
-  end
-  local note_index = NOTE_NAME_INDEX[note_name]
-  return tonumber(octave) * 12 + note_index
-end
-
 local function init_engine()
   engine.release(params:get("release"))
   engine.cutoff(params:get("cutoff"))
@@ -346,14 +282,14 @@ local function collect_playable_cells()
   
   local play_direction = params:get("play_direction")
   if(play_direction == 2 or play_direction == 5) then
-    state.playable_cells = table_reverse(state.playable_cells)
+    state.playable_cells = helpers.table.reverse(state.playable_cells)
   elseif(play_direction == 3) then
-    state.playable_cells = table_shuffle(state.playable_cells)
+    state.playable_cells = helpers.table.shuffle(state.playable_cells)
   end
 end
 
 local function do_the_time_warp()
-  state.board.current = clone_board(state.board.the_past.value) --set the board equal to the first entry in the past (last generation)
+  state.board.current = helpers.clone_board(state.board.the_past.value) --set the board equal to the first entry in the past (last generation)
   state.board.the_past = list.eraseBackward(state.board.the_past) --remove the future. Because the future is deterministic.
   state.play_pos = 1
   collect_playable_cells()
@@ -361,9 +297,9 @@ local function do_the_time_warp()
 end
 
 local function generation_step()
-  state.board.the_past = list.insert(state.board.the_past, clone_board(state.board.current))
+  state.board.the_past = list.insert(state.board.the_past, helpers.clone_board(state.board.current))
   notes_off()
-  local board_c = clone_board(state.board.current)
+  local board_c = helpers.clone_board(state.board.current)
   for x=1,config.GRID.SIZE.X do
     for y=1,config.GRID.SIZE.Y do
       local num_neighbors = number_of_neighbors(x, y)
@@ -560,8 +496,8 @@ function init()
       ["octave"] = math.floor(i / 12)
     }
   end
-  config.MUSIC.NOTE_NAMES = table_map(function(note) return note.name end, config.MUSIC.NOTES)
-  config.MUSIC.SCALE_NAMES = table_map(function(scale) return scale.name end, music.SCALES)
+  config.MUSIC.NOTE_NAMES = helpers.table.map(function(note) return note.name end, config.MUSIC.NOTES)
+  config.MUSIC.SCALE_NAMES = helpers.table.map(function(scale) return scale.name end, music.SCALES)
   
   -- params
   params:add_option("seq_mode", "seq mode", config.SEQ.MODES, 2)
@@ -628,7 +564,7 @@ function init()
       state.board.current[x][y] = config.GRID.LEVEL.DEAD
     end
   end
-  state.board.the_past = list.construct(clone_board(state.board.current)) -- initial construction of the past with a single 'dead' board
+  state.board.the_past = list.construct(helpers.clone_board(state.board.current)) -- initial construction of the past with a single 'dead' board
   load_state()
   
   init_position()
