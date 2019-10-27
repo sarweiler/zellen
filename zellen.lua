@@ -188,42 +188,42 @@ end
 
 local function number_of_neighbors(x, y)
   local num_neighbors = 0
-  num_neighbors = num_neighbors + (is_active(x + 1, y) and 1 or 0)
-  num_neighbors = num_neighbors + (is_active(x - 1, y) and 1 or 0)
-  num_neighbors = num_neighbors + (is_active(x, y + 1) and 1 or 0)
-  num_neighbors = num_neighbors + (is_active(x, y - 1) and 1 or 0)
-  num_neighbors = num_neighbors + (is_active(x + 1, y + 1) and 1 or 0)
-  num_neighbors = num_neighbors + (is_active(x + 1, y - 1) and 1 or 0)
-  num_neighbors = num_neighbors + (is_active(x - 1, y + 1) and 1 or 0)
-  num_neighbors = num_neighbors + (is_active(x - 1, y - 1) and 1 or 0)
-
-  --[[
-  if (x < config.GRID.SIZE.X) then
+  if (params:get("wrap_mode") == 1) then
     num_neighbors = num_neighbors + (is_active(x + 1, y) and 1 or 0)
-  end
-  if (x > 1) then
     num_neighbors = num_neighbors + (is_active(x - 1, y) and 1 or 0)
-  end
-  if (y < config.GRID.SIZE.Y) then
     num_neighbors = num_neighbors + (is_active(x, y + 1) and 1 or 0)
-  end
-  if (y > 1) then
     num_neighbors = num_neighbors + (is_active(x, y - 1) and 1 or 0)
-  end
-  if (x < config.GRID.SIZE.X and y < config.GRID.SIZE.Y) then
     num_neighbors = num_neighbors + (is_active(x + 1, y + 1) and 1 or 0)
-  end
-  if (x < config.GRID.SIZE.X and y > 1) then
     num_neighbors = num_neighbors + (is_active(x + 1, y - 1) and 1 or 0)
-  end
-  if (x > 1 and y < config.GRID.SIZE.Y) then
     num_neighbors = num_neighbors + (is_active(x - 1, y + 1) and 1 or 0)
-  end
-  if (x > 1 and y > 1) then
     num_neighbors = num_neighbors + (is_active(x - 1, y - 1) and 1 or 0)
+  else
+    if (x < config.GRID.SIZE.X) then
+      num_neighbors = num_neighbors + (is_active(x + 1, y) and 1 or 0)
+    end
+    if (x > 1) then
+      num_neighbors = num_neighbors + (is_active(x - 1, y) and 1 or 0)
+    end
+    if (y < config.GRID.SIZE.Y) then
+      num_neighbors = num_neighbors + (is_active(x, y + 1) and 1 or 0)
+    end
+    if (y > 1) then
+      num_neighbors = num_neighbors + (is_active(x, y - 1) and 1 or 0)
+    end
+    if (x < config.GRID.SIZE.X and y < config.GRID.SIZE.Y) then
+      num_neighbors = num_neighbors + (is_active(x + 1, y + 1) and 1 or 0)
+    end
+    if (x < config.GRID.SIZE.X and y > 1) then
+      num_neighbors = num_neighbors + (is_active(x + 1, y - 1) and 1 or 0)
+    end
+    if (x > 1 and y < config.GRID.SIZE.Y) then
+      num_neighbors = num_neighbors + (is_active(x - 1, y + 1) and 1 or 0)
+    end
+    if (x > 1 and y > 1) then
+      num_neighbors = num_neighbors + (is_active(x - 1, y - 1) and 1 or 0)
+    end
   end
-  ]]--
-  
+
   return num_neighbors
 end
 
@@ -490,6 +490,8 @@ function init()
   
   params:add_option("play_direction", "play direction", config.SEQ.PLAY_DIRECTIONS, 1)
   params:set_action("play_direction", set_play_direction)
+
+  params:add_option("wrap_mode", "wrap board at edges", {"Y", "N"}, 1)
   
   params:add_separator()
   clk:add_clock_params()
