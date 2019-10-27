@@ -349,7 +349,7 @@ local function play_seq_step()
   if (state.beats[(state.beat_step % beat_seq_lengths) + 1] or seq_mode == 1) then
     if (state.play_pos <= #state.playable_cells) then
       state.seq.position = state.playable_cells[state.play_pos]
-      local midi_note = scale[(state.seq.position.x - 1) + state.seq.position.y]
+      local midi_note = state.scale[(state.seq.position.x - 1) + state.seq.position.y]
       note_on(midi_note)
       if(play_direction == 4 or play_direction == 5) then
         if(math.random(2) == 1 and state.play_pos > 1) then
