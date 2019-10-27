@@ -40,5 +40,28 @@ helpers.clone_board = function(b)
   return b_c
 end
 
+helpers.load_params = function()
+  -- TODO: load board state
+  params:read(_path.data .. "zellen/zellen.pset")
+  params:bang()
+end
+
+helpers.update_playing_indicator = function(show_playing_indicator)
+  if (params:get("seq_mode") ~= 1) then
+    if (show_playing_indicator) then
+      screen.level(15)
+    else
+      screen.level(0)
+    end
+    screen.rect(125, 53, 3, 3)
+    screen.fill()
+  end
+end
+
+helpers.init_engine = function(engine)
+  engine.release(params:get("release"))
+  engine.cutoff(params:get("cutoff"))
+end
+
 
 return helpers

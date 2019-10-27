@@ -153,36 +153,6 @@ local function notes_off()
 end
 
 
--- helpers
-local function init_engine()
-  engine.release(params:get("release"))
-  engine.cutoff(params:get("cutoff"))
-end
-
-local function update_playing_indicator()
-  if (params:get("seq_mode") ~= 1) then
-    if (state.show_playing_indicator) then
-      screen.level(15)
-    else
-      screen.level(0)
-    end
-    screen.rect(125, 53, 3, 3)
-    screen.fill()
-  end
-end
-
-local function load_state()
-  -- TODO: load board state
-  params:read(_path.data .. "zellen/zellen.pset")
-  params:bang()
-end
-
--- TODO: save board state
---local function save_state()
---  params:write("sbaio/zellen.pset")
---end
-
-
 -- game logic
 local function x_coord_wrap(x)
   x_mod = (x == 0 or x == config.GRID.SIZE.X) and config.GRID.SIZE.X or math.max(1, x % config.GRID.SIZE.X)
@@ -568,10 +538,10 @@ function init()
     end
   end
   state.board.the_past = list.construct(helpers.clone_board(state.board.current)) -- initial construction of the past with a single 'dead' board
-  load_state()
+  helpers.load_params()
   
   init_position()
-  init_engine()
+  helpers.init_engine(engine)
   
   clk.on_step = play_seq_step
 end
@@ -605,7 +575,7 @@ function redraw()
   screen.move(0, 56)
   screen.text("play direction")
   
-  update_playing_indicator()
+  helpers.update_playing_indicator(state.show_playing_indicator)
   
   screen.update()
 end
