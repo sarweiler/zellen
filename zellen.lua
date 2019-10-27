@@ -97,11 +97,12 @@ local state = {
   active_notes = {},
   seq_running = false,
   show_playing_indicator = false,
-  board = {},
   beats = {true},
   euclid_seq_len = 1,
   euclid_seq_beats = 1,
-  beat_step = 0
+  beat_step = 0,
+  board = {},
+  the_past = {} --constructed on init. This linked list will hold ancestral boards so we may visit the past
 }
 
 -- beatclock
@@ -109,8 +110,6 @@ local clk = beatclock.new()
 local midi_out = midi.connect(1)
 local midi_in = midi.connect(1)
 midi_in.event = function(data) clk:process_midi(data) end
-
-local the_past = {} --constructed on init. This linked list will hold ancestral boards so we may visit the past
 
 -- note on/off
 local function note_on(note)
@@ -352,15 +351,15 @@ local function collect_playable_cells()
 end
 
 local function do_the_time_warp()
-  state.board = clone_board(the_past.value) --set the board equal to the first entry in the past (last generation)
-  the_past = list.eraseBackward(the_past) --remove the future. Because the future is deterministic.
+  state.board = clone_board(state.the_past.value) --set the board equal to the first entry in the past (last generation)
+  state.the_past = list.eraseBackward(state.the_past) --remove the future. Because the future is deterministic.
   state.play_pos = 1
   collect_playable_cells()
   grid_redraw()
 end
 
 local function generation_step()
-  the_past = list.insert(the_past, clone_board(state.board))
+  state.the_past = list.insert(state.the_past, clone_board(state.board))
   notes_off()
   local board_c = clone_board(state.board)
   for x=1,config.GRID.SIZE.X do
@@ -627,7 +626,7 @@ function init()
       state.board[x][y] = config.GRID.LEVEL.DEAD
     end
   end
-  the_past = list.construct(clone_board(state.board)) -- initial construction of the past with a single 'dead' board
+  state.the_past = list.construct(clone_board(state.board)) -- initial construction of the past with a single 'dead' board
   load_state()
   
   init_position()
