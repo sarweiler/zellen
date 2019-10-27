@@ -82,14 +82,27 @@ local config = {
 }
 
 -- initial values
-local key_state = {
-  key1_down = false,
-  key2_down = false,
-  key3_down = false
+local state = {
+  keys = {
+    key1_down = false,
+    key2_down = false,
+    key3_down = false
+  },
+  root_note = 36,
+  scale_name = "",
+  scale = {},
+  note_offset = 0,
+  playable_cells = {},
+  play_pos = 0,
+  active_notes = {},
+  seq_running = false,
+  show_playing_indicator = false,
+  board = {},
+  beats = {true},
+  euclid_seq_len = 1,
+  euclid_seq_beats = 1,
+  beat_step = 0
 }
-local root_note = 36
-local scale_name = ""
-local scale = {}
 
 -- beatclock
 local clk = beatclock.new()
@@ -97,23 +110,11 @@ local midi_out = midi.connect(1)
 local midi_in = midi.connect(1)
 midi_in.event = function(data) clk:process_midi(data) end
 
-local note_offset = 0
-local playable_cells = {}
-local play_pos = 0
-local active_notes = {}
-local seq_running = false
-local show_playing_indicator = false
-local board = {}
-local beats = {true}
-local euclid_seq_len = 1
-local euclid_seq_beats = 1
-local beat_step = 0
-
 local the_past = {} --constructed on init. This linked list will hold ancestral boards so we may visit the past
 
 -- note on/off
 local function note_on(note)
-  local note_num = math.min((note + note_offset), 127)
+  local note_num = math.min((note + state.note_offset), 127)
   local synth_mode = params:get("synth")
   if(synth_mode == 1 or synth_mode == 3) then
     local amp = params:get("amp")
@@ -136,14 +137,14 @@ local function note_on(note)
     end
     midi_out:note_on(note_num, velocity, params:get("midi_channel"))
   end
-  table.insert(active_notes, note_num)
+  table.insert(state.active_notes, note_num)
 end
 
 local function notes_off()
-  for i=1,#active_notes do
-    midi_out:note_off(active_notes[i], 0, params:get("midi_channel"))
+  for i=1,#state.active_notes do
+    midi_out:note_off(state.active_notes[i], 0, params:get("midi_channel"))
   end
-  active_notes = {}
+  state.active_notes = {}
 end
 
 
@@ -220,7 +221,7 @@ end
 
 local function update_playing_indicator()
   if (params:get("seq_mode") ~= 1) then
-    if (show_playing_indicator) then
+    if (state.show_playing_indicator) then
       screen.level(15)
     else
       screen.level(0)
@@ -260,19 +261,19 @@ local function y_coord_wrap(y)
 end
 
 local function is_active(x, y)
-  return board[x_coord_wrap(x)][y_coord_wrap(y)] > config.GRID.LEVEL.ALIVE_THRESHOLD
+  return state.board[x_coord_wrap(x)][y_coord_wrap(y)] > config.GRID.LEVEL.ALIVE_THRESHOLD
 end
 
 local function is_dying(x, y)
-  return board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.DYING
+  return state.board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.DYING
 end
 
 local function was_born(x, y)
-  return board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.BORN
+  return state.board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.BORN
 end
 
 local function was_reborn(x, y)
-  return board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.REBORN
+  return state.board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.REBORN
 end
 
 local function number_of_neighbors(x, y)
@@ -317,24 +318,24 @@ local function number_of_neighbors(x, y)
 end
 
 local function collect_playable_cells()
-  playable_cells = {}
+  state.playable_cells = {}
   local mode = params:get("play_mode")
   for x=1,config.GRID.SIZE.X do
     for y=1,config.GRID.SIZE.Y do
       if (was_born(x, y) and mode == 1) then
-        table.insert(playable_cells, {
+        table.insert(state.playable_cells, {
           ["x"] = x,
           ["y"] = y
         })
       end
       if ((was_born(x, y) or was_reborn(x, y)) and mode == 2) then
-        table.insert(playable_cells, {
+        table.insert(state.playable_cells, {
           ["x"] = x,
           ["y"] = y
         })
       end
       if (is_dying(x, y) and mode == 3) then
-        table.insert(playable_cells, {
+        table.insert(state.playable_cells, {
           ["x"] = x,
           ["y"] = y
         })
@@ -344,24 +345,24 @@ local function collect_playable_cells()
   
   local play_direction = params:get("play_direction")
   if(play_direction == 2 or play_direction == 5) then
-    playable_cells = table_reverse(playable_cells)
+    state.playable_cells = table_reverse(state.playable_cells)
   elseif(play_direction == 3) then
-    playable_cells = table_shuffle(playable_cells)
+    state.playable_cells = table_shuffle(state.playable_cells)
   end
 end
 
 local function do_the_time_warp()
-  board = clone_board(the_past.value) --set the board equal to the first entry in the past (last generation)
+  state.board = clone_board(the_past.value) --set the board equal to the first entry in the past (last generation)
   the_past = list.eraseBackward(the_past) --remove the future. Because the future is deterministic.
-  play_pos = 1
+  state.play_pos = 1
   collect_playable_cells()
   grid_redraw()
 end
 
 local function generation_step()
-  the_past = list.insert(the_past, clone_board(board))
+  the_past = list.insert(the_past, clone_board(state.board))
   notes_off()
-  local board_c = clone_board(board)
+  local board_c = clone_board(state.board)
   for x=1,config.GRID.SIZE.X do
     for y=1,config.GRID.SIZE.Y do
       local num_neighbors = number_of_neighbors(x, y)
@@ -386,8 +387,8 @@ local function generation_step()
       end
     end
   end
-  board = board_c
-  play_pos = 1
+  state.board = board_c
+  state.play_pos = 1
   collect_playable_cells()
   grid_redraw()
 end
@@ -403,9 +404,9 @@ end
 
 local function reset_sequence()
   local seq_mode = params:get("seq_mode")
-  play_pos = 1
+  state.play_pos = 1
   if (params:get("euclid_reset") == 1) then
-    beat_step = 1
+    state.beat_step = 1
   end
   
   if(seq_mode == 3 or (seq_mode == 2 and params:get("loop_semi_auto_seq") == 1)) then
@@ -413,15 +414,15 @@ local function reset_sequence()
       init_position()
       generation_step()
     end
-    if(not seq_running) then
+    if(not state.seq_running) then
       clk:start()
-      seq_running = true
-      show_playing_indicator = true
+      state.seq_running = true
+      state.show_playing_indicator = true
     end
   else
     clk:stop()
-    seq_running = false
-    show_playing_indicator = false
+    state.seq_running = false
+    state.show_playing_indicator = false
   end
 end
 
@@ -431,26 +432,26 @@ local function play_seq_step()
   local seq_mode = params:get("seq_mode")
   notes_off()
   
-  show_playing_indicator = not show_playing_indicator
+  state.show_playing_indicator = not state.show_playing_indicator
   
-  local beat_seq_lengths = #beats
+  local beat_seq_lengths = #state.beats
   
-  if (beats[(beat_step % beat_seq_lengths) + 1] or seq_mode == 1) then
-    if (play_pos <= #playable_cells) then
-      position = playable_cells[play_pos]
+  if (state.beats[(state.beat_step % beat_seq_lengths) + 1] or seq_mode == 1) then
+    if (state.play_pos <= #state.playable_cells) then
+      position = state.playable_cells[state.play_pos]
       local midi_note = scale[(position.x - 1) + position.y]
       note_on(midi_note)
       if(play_direction == 4 or play_direction == 5) then
-        if(math.random(2) == 1 and play_pos > 1) then
-          play_pos = play_pos - 1
+        if(math.random(2) == 1 and state.play_pos > 1) then
+          state.play_pos = state.play_pos - 1
         else
-          play_pos = play_pos + 1
+          state.play_pos = state.play_pos + 1
         end
-        beat_step = beat_step + 1
+        state.beat_step = state.beat_step + 1
       else
-        if (play_pos < #playable_cells or (seq_mode == 2  and not params:get("loop_semi_auto_seq") == 1)) then
-          play_pos = play_pos + 1
-          beat_step = beat_step + 1
+        if (state.play_pos < #state.playable_cells or (seq_mode == 2  and not params:get("loop_semi_auto_seq") == 1)) then
+          state.play_pos = state.play_pos + 1
+          state.beat_step = state.beat_step + 1
         else
           reset_sequence()
         end
@@ -460,7 +461,7 @@ local function play_seq_step()
       reset_sequence()
     end
   else
-    beat_step = beat_step + 1
+    state.beat_step = state.beat_step + 1
   end
   redraw()
   grid_redraw()
@@ -469,12 +470,12 @@ end
 local function clear_board()
   for x=1,config.GRID.SIZE.X do
     for y=1,config.GRID.SIZE.Y do
-      board[x][y] = config.GRID.LEVEL.DEAD
+      state.board[x][y] = config.GRID.LEVEL.DEAD
     end 
   end
   notes_off()
   init_position()
-  playable_cells = {}
+  state.playable_cells = {}
   grid_redraw()
 end
 
@@ -483,9 +484,9 @@ end
 
 local function set_play_mode(play_mode)
   if(play_mode == 3) then
-    note_offset = params:get("ghost_offset")
+    state.note_offset = params:get("ghost_offset")
   else
-    note_offset = 0
+    state.note_offset = 0
   end
   collect_playable_cells()
 end
@@ -499,30 +500,30 @@ local function set_ghost_offset()
 end
 
 local function set_scale(new_scale_name)
-  scale = music.generate_scale_of_length(root_note, new_scale_name, config.MUSIC.SCALE_LENGTH)
+  state.scale= music.generate_scale_of_length(state.root_note, new_scale_name, config.MUSIC.SCALE_LENGTH)
 end
 
 local function set_root_note(new_root_note)
-  root_note = new_root_note
-  scale = music.generate_scale_of_length(new_root_note, scale_name, config.MUSIC.SCALE_LENGTH)
+  state.root_note = new_root_note
+  state.scale= music.generate_scale_of_length(new_root_note, state.scale_name, config.MUSIC.SCALE_LENGTH)
 end
 
 local function set_euclid_seq_len(new_euclid_seq_len)
-  if (new_euclid_seq_len < euclid_seq_beats) then
-    new_euclid_seq_len = euclid_seq_beats
+  if (new_euclid_seq_len < state.euclid_seq_beats) then
+    new_euclid_seq_len = state.euclid_seq_beats
     params:set("euclid_seq_len", new_euclid_seq_len)
   end
-  euclid_seq_len = new_euclid_seq_len
-  beats = er.gen(euclid_seq_beats, new_euclid_seq_len)
+  state.euclid_seq_len = new_euclid_seq_len
+  state.beats = er.gen(state.euclid_seq_beats, new_euclid_seq_len)
 end
 
 local function set_euclid_seq_beats(new_euclid_seq_beats)
-  if(new_euclid_seq_beats > euclid_seq_len) then
-    new_euclid_seq_beats = euclid_seq_len
+  if(new_euclid_seq_beats > state.euclid_seq_len) then
+    new_euclid_seq_beats = state.euclid_seq_len
     params:set("euclid_seq_beats", new_euclid_seq_beats)
   end
-  euclid_seq_beats = new_euclid_seq_beats
-  beats = er.gen(new_euclid_seq_beats, euclid_seq_len)
+  state.euclid_seq_beats = new_euclid_seq_beats
+  state.beats = er.gen(new_euclid_seq_beats, state.euclid_seq_len)
 end
 
 local function set_release(r)
@@ -568,8 +569,8 @@ function init()
   params:add_option("scale", "scale", config.MUSIC.SCALE_NAMES, 1)
   params:set_action("scale", set_scale)
   
-  params:add_option("root_note", "root note", config.MUSIC.NOTE_NAMES, 36)
-  params:set_action("root_note", set_root_note)
+  params:add_option("state.root_note", "root note", config.MUSIC.NOTE_NAMES, 36)
+  params:set_action("state.root_note", set_root_note)
   
   params:add_number("ghost_offset", "ghost offset", -24, 24, 0)
   params:set_action("ghost_offset", set_ghost_offset)
@@ -617,16 +618,16 @@ function init()
   params:add_number("midi_in_device_number", "midi in device number", 1, 4, 1)
   params:set_action("midi_in_device_number", set_midi_in_device_number)
   
-  scale_name = config.MUSIC.SCALE_NAMES[13]
-  scale = music.generate_scale_of_length(root_note, scale_name, config.MUSIC.SCALE_LENGTH)
+  state.scale_name = config.MUSIC.SCALE_NAMES[13]
+  state.scale= music.generate_scale_of_length(state.root_note, state.scale_name, config.MUSIC.SCALE_LENGTH)
   
   for x=1,config.GRID.SIZE.X do
-  board[x] = {}
+  state.board[x] = {}
     for y=1,config.GRID.SIZE.Y do
-      board[x][y] = config.GRID.LEVEL.DEAD
+      state.board[x][y] = config.GRID.LEVEL.DEAD
     end
   end
-  the_past = list.construct(clone_board(board)) -- initial construction of the past with a single 'dead' board
+  the_past = list.construct(clone_board(state.board)) -- initial construction of the past with a single 'dead' board
   load_state()
   
   init_position()
@@ -677,7 +678,7 @@ function grid_redraw()
       if (position.x == x and position.y == y) then
         g:led(x, y, config.GRID.LEVEL.ACTIVE)
       else
-        g:led(x, y, board[x][y])
+        g:led(x, y, state.board[x][y])
       end
     end
   end
@@ -694,7 +695,7 @@ function enc(n, d)
     params:delta("play_mode", d)
   end
   if (n == 3) then
-    if (keystate.key3_down == false) then
+    if (state.keys.key3_down == false) then
       params:delta("play_direction", d)
     else
       if (d == 1) then
@@ -712,44 +713,44 @@ end
 function key(n, z)
   local seq_mode = params:get("seq_mode")
   if (n == 1) then
-    keystate.key1_down = z == 1
+    state.keys.key1_down = z == 1
   end
   if (n == 2) then
-    keystate.key2_down = z == 1
-    if(keystate.key2_down and keystate.key1_down) then
+    state.keys.key2_down = z == 1
+    if(state.keys.key2_down and state.keys.key1_down) then
       -- TODO: save board state
       --save_state()
-    elseif (keystate.key2_down) then
+    elseif (state.keys.key2_down) then
       if(seq_mode == 1) then
-        if (#playable_cells == 0) then
+        if (#state.playable_cells == 0) then
           generation_step()
         end
         play_seq_step()
       elseif(seq_mode == 2 or seq_mode == 3) then
-        if(seq_running) then
+        if(state.seq_running) then
           clk:stop()
-          seq_running = false
-          show_playing_indicator = false
+          state.seq_running = false
+          state.show_playing_indicator = false
         else
-          if (#playable_cells == 0) then
+          if (#state.playable_cells == 0) then
             generation_step()
           end
           clk:start()
-          seq_running = true
-          show_playing_indicator = true
+          state.seq_running = true
+          state.show_playing_indicator = true
         end
       end
     end
   end
   if (n == 3) then
-    keystate.key3_down = z == 1
-    if(keystate.key3_down and keystate.key1_down) then
+    state.keys.key3_down = z == 1
+    if(state.keys.key3_down and state.keys.key1_down) then
       clear_board()
-    elseif(keystate.key3_down) then
+    elseif(state.keys.key3_down) then
       if(not (seq_mode == 2 and params:get("loop_semi_auto_seq") == 1)) then --true only if semi-auto and loop
         clk:stop()
-        seq_running = false
-        show_playing_indicator = false
+        state.seq_running = false
+        state.show_playing_indicator = false
       end
       generation_step() --if you continue to hold key 3 you can twist enc3 for lots of generations
     end
@@ -762,9 +763,9 @@ end
 g.key = function(x, y, z)
   if (z == 1) then
     if (is_active(x, y)) then
-      board[x][y] = config.GRID.LEVEL.DEAD
+      state.board[x][y] = config.GRID.LEVEL.DEAD
     else
-      board[x][y] = config.GRID.LEVEL.ALIVE
+      state.board[x][y] = config.GRID.LEVEL.ALIVE
     end
   end
   grid_redraw()
