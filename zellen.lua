@@ -118,7 +118,7 @@ local midi_in = midi.connect(1)
 midi_in.event = function(data) clk:process_midi(data) end
 
 -- note on/off
-local function note_on(note)
+local function note_on(note, support_note)
   local note_num = math.min((note + state.note_offset), 127)
   local synth_mode = params:get("synth")
   if(synth_mode == 1 or synth_mode == 3) then
@@ -142,6 +142,12 @@ local function note_on(note)
     end
     midi_out:note_on(note_num, velocity, params:get("midi_channel"))
   end
+
+  -- experimental crow support
+  -- TODO: make switchable via param
+  crow.output[1].volts = note/12 - 3 -- TODO: make cv octave offset configurable via param
+  crow.output[2].execute()
+  crow.output[3].volts = support_note/12 - 3 -- TODO: make cv octave offset configurable via param
   table.insert(state.active_notes, note_num)
 end
 
@@ -335,6 +341,8 @@ local function play_seq_step()
   local play_direction = params:get("play_direction")
   local seq_mode = params:get("seq_mode")
   notes_off()
+
+  crow.output[4].execute()
   
   state.show_playing_indicator = not state.show_playing_indicator
   
@@ -344,7 +352,9 @@ local function play_seq_step()
     if (state.play_pos <= #state.playable_cells) then
       state.seq.position = state.playable_cells[state.play_pos]
       local midi_note = state.scale[(state.seq.position.x - 1) + state.seq.position.y]
-      note_on(midi_note)
+      -- TODO: make support note mode configurable
+      local support_note = state.scale[math.ceil((state.seq.position.x)/state.seq.position.y)]
+      note_on(midi_note, support_note)
       if(play_direction == 4 or play_direction == 5) then
         if(math.random(2) == 1 and state.play_pos > 1) then
           state.play_pos = state.play_pos - 1
@@ -540,6 +550,10 @@ function init()
   helpers.init_engine(engine)
   
   clk.on_step = play_seq_step
+
+  -- crow init
+  crow.output[2].action = "{to(5,0), to(0, 0.25)}"
+  crow.output[4].action = "{to(5,0), to(0, 0.1)}"
 end
 
 
