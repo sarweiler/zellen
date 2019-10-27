@@ -156,17 +156,11 @@ end
 -- game logic
 local function x_coord_wrap(x)
   x_mod = (x == 0 or x == config.GRID.SIZE.X) and config.GRID.SIZE.X or math.max(1, x % config.GRID.SIZE.X)
-  if ((x <= config.GRID.SIZE.X and x >= 1) and x ~= x_mod) then
-    print(x .. " / " .. x_mod)
-  end
   return (x == 0 or x == config.GRID.SIZE.X) and config.GRID.SIZE.X or math.max(1, x % config.GRID.SIZE.X)
 end
 
 local function y_coord_wrap(y)
   y_mod = (y == 0 or y == config.GRID.SIZE.Y) and config.GRID.SIZE.Y or math.max(1, y % config.GRID.SIZE.Y)
-  if ((y <= config.GRID.SIZE.Y and y >= 1) and y ~= y_mod) then
-    print(y .. " / " .. y_mod)
-  end
   return (y == 0 or y == config.GRID.SIZE.Y) and config.GRID.SIZE.Y or math.max(1, y % config.GRID.SIZE.Y)
 end
 
