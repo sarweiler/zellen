@@ -32,7 +32,7 @@ local g = grid.connect()
 local list = include("lib/linkedlist") --borrowed circular linked list library we dont use the circular part... yet.
 
 -- constants
-local CONFIG = {
+local config = {
   GRID = {
     SIZE = {
       X = g.cols,
@@ -244,35 +244,35 @@ end
 
 -- game logic
 local function x_coord_wrap(x)
-  x_mod = (x == 0 or x == CONFIG.GRID.SIZE.X) and CONFIG.GRID.SIZE.X or math.max(1, x % CONFIG.GRID.SIZE.X)
-  if ((x <= CONFIG.GRID.SIZE.X and x >= 1) and x ~= x_mod) then
+  x_mod = (x == 0 or x == config.GRID.SIZE.X) and config.GRID.SIZE.X or math.max(1, x % config.GRID.SIZE.X)
+  if ((x <= config.GRID.SIZE.X and x >= 1) and x ~= x_mod) then
     print(x .. " / " .. x_mod)
   end
-  return (x == 0 or x == CONFIG.GRID.SIZE.X) and CONFIG.GRID.SIZE.X or math.max(1, x % CONFIG.GRID.SIZE.X)
+  return (x == 0 or x == config.GRID.SIZE.X) and config.GRID.SIZE.X or math.max(1, x % config.GRID.SIZE.X)
 end
 
 local function y_coord_wrap(y)
-  y_mod = (y == 0 or y == CONFIG.GRID.SIZE.Y) and CONFIG.GRID.SIZE.Y or math.max(1, y % CONFIG.GRID.SIZE.Y)
-  if ((y <= CONFIG.GRID.SIZE.Y and y >= 1) and y ~= y_mod) then
+  y_mod = (y == 0 or y == config.GRID.SIZE.Y) and config.GRID.SIZE.Y or math.max(1, y % config.GRID.SIZE.Y)
+  if ((y <= config.GRID.SIZE.Y and y >= 1) and y ~= y_mod) then
     print(y .. " / " .. y_mod)
   end
-  return (y == 0 or y == CONFIG.GRID.SIZE.Y) and CONFIG.GRID.SIZE.Y or math.max(1, y % CONFIG.GRID.SIZE.Y)
+  return (y == 0 or y == config.GRID.SIZE.Y) and config.GRID.SIZE.Y or math.max(1, y % config.GRID.SIZE.Y)
 end
 
 local function is_active(x, y)
-  return board[x_coord_wrap(x)][y_coord_wrap(y)] > CONFIG.GRID.LEVEL.ALIVE_THRESHOLD
+  return board[x_coord_wrap(x)][y_coord_wrap(y)] > config.GRID.LEVEL.ALIVE_THRESHOLD
 end
 
 local function is_dying(x, y)
-  return board[x_coord_wrap(x)][y_coord_wrap(y)] == CONFIG.GRID.LEVEL.DYING
+  return board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.DYING
 end
 
 local function was_born(x, y)
-  return board[x_coord_wrap(x)][y_coord_wrap(y)] == CONFIG.GRID.LEVEL.BORN
+  return board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.BORN
 end
 
 local function was_reborn(x, y)
-  return board[x_coord_wrap(x)][y_coord_wrap(y)] == CONFIG.GRID.LEVEL.REBORN
+  return board[x_coord_wrap(x)][y_coord_wrap(y)] == config.GRID.LEVEL.REBORN
 end
 
 local function number_of_neighbors(x, y)
@@ -287,25 +287,25 @@ local function number_of_neighbors(x, y)
   num_neighbors = num_neighbors + (is_active(x - 1, y - 1) and 1 or 0)
 
   --[[
-  if (x < CONFIG.GRID.SIZE.X) then
+  if (x < config.GRID.SIZE.X) then
     num_neighbors = num_neighbors + (is_active(x + 1, y) and 1 or 0)
   end
   if (x > 1) then
     num_neighbors = num_neighbors + (is_active(x - 1, y) and 1 or 0)
   end
-  if (y < CONFIG.GRID.SIZE.Y) then
+  if (y < config.GRID.SIZE.Y) then
     num_neighbors = num_neighbors + (is_active(x, y + 1) and 1 or 0)
   end
   if (y > 1) then
     num_neighbors = num_neighbors + (is_active(x, y - 1) and 1 or 0)
   end
-  if (x < CONFIG.GRID.SIZE.X and y < CONFIG.GRID.SIZE.Y) then
+  if (x < config.GRID.SIZE.X and y < config.GRID.SIZE.Y) then
     num_neighbors = num_neighbors + (is_active(x + 1, y + 1) and 1 or 0)
   end
-  if (x < CONFIG.GRID.SIZE.X and y > 1) then
+  if (x < config.GRID.SIZE.X and y > 1) then
     num_neighbors = num_neighbors + (is_active(x + 1, y - 1) and 1 or 0)
   end
-  if (x > 1 and y < CONFIG.GRID.SIZE.Y) then
+  if (x > 1 and y < config.GRID.SIZE.Y) then
     num_neighbors = num_neighbors + (is_active(x - 1, y + 1) and 1 or 0)
   end
   if (x > 1 and y > 1) then
@@ -319,8 +319,8 @@ end
 local function collect_playable_cells()
   playable_cells = {}
   local mode = params:get("play_mode")
-  for x=1,CONFIG.GRID.SIZE.X do
-    for y=1,CONFIG.GRID.SIZE.Y do
+  for x=1,config.GRID.SIZE.X do
+    for y=1,config.GRID.SIZE.Y do
       if (was_born(x, y) and mode == 1) then
         table.insert(playable_cells, {
           ["x"] = x,
@@ -362,27 +362,27 @@ local function generation_step()
   the_past = list.insert(the_past, clone_board(board))
   notes_off()
   local board_c = clone_board(board)
-  for x=1,CONFIG.GRID.SIZE.X do
-    for y=1,CONFIG.GRID.SIZE.Y do
+  for x=1,config.GRID.SIZE.X do
+    for y=1,config.GRID.SIZE.Y do
       local num_neighbors = number_of_neighbors(x, y)
       local cell_active = is_active(x, y)
       if(is_dying(x, y)) then
-        board_c[x][y] = CONFIG.GRID.LEVEL.DEAD
+        board_c[x][y] = config.GRID.LEVEL.DEAD
       end
       if (num_neighbors < 2 and cell_active) then
-        board_c[x][y] = CONFIG.GRID.LEVEL.DYING
+        board_c[x][y] = config.GRID.LEVEL.DYING
       end
       if (num_neighbors > 3 and cell_active) then
-        board_c[x][y] = CONFIG.GRID.LEVEL.DYING
+        board_c[x][y] = config.GRID.LEVEL.DYING
       end
       if (num_neighbors > 1 and num_neighbors < 4 and cell_active) then
-        board_c[x][y] = CONFIG.GRID.LEVEL.ALIVE
+        board_c[x][y] = config.GRID.LEVEL.ALIVE
       end
       if (num_neighbors == 3 and cell_active) then
-        board_c[x][y] = CONFIG.GRID.LEVEL.REBORN
+        board_c[x][y] = config.GRID.LEVEL.REBORN
       end
       if (num_neighbors == 3 and not cell_active) then
-        board_c[x][y] = CONFIG.GRID.LEVEL.BORN
+        board_c[x][y] = config.GRID.LEVEL.BORN
       end
     end
   end
@@ -467,9 +467,9 @@ local function play_seq_step()
 end
 
 local function clear_board()
-  for x=1,CONFIG.GRID.SIZE.X do
-    for y=1,CONFIG.GRID.SIZE.Y do
-      board[x][y] = CONFIG.GRID.LEVEL.DEAD
+  for x=1,config.GRID.SIZE.X do
+    for y=1,config.GRID.SIZE.Y do
+      board[x][y] = config.GRID.LEVEL.DEAD
     end 
   end
   notes_off()
@@ -499,12 +499,12 @@ local function set_ghost_offset()
 end
 
 local function set_scale(new_scale_name)
-  scale = music.generate_scale_of_length(root_note, new_scale_name, CONFIG.MUSIC.SCALE_LENGTH)
+  scale = music.generate_scale_of_length(root_note, new_scale_name, config.MUSIC.SCALE_LENGTH)
 end
 
 local function set_root_note(new_root_note)
   root_note = new_root_note
-  scale = music.generate_scale_of_length(new_root_note, scale_name, CONFIG.MUSIC.SCALE_LENGTH)
+  scale = music.generate_scale_of_length(new_root_note, scale_name, config.MUSIC.SCALE_LENGTH)
 end
 
 local function set_euclid_seq_len(new_euclid_seq_len)
@@ -552,32 +552,32 @@ end
 -- init
 function init()
   for i=0, 72 do
-    CONFIG.MUSIC.NOTES[i] = {
+    config.MUSIC.NOTES[i] = {
       ["number"] = i,
-      ["name"] = CONFIG.MUSIC.NOTE_NAMES_OCTAVE[i % 12 + 1] .. math.floor(i / 12),
+      ["name"] = config.MUSIC.NOTE_NAMES_OCTAVE[i % 12 + 1] .. math.floor(i / 12),
       ["octave"] = math.floor(i / 12)
     }
   end
-  CONFIG.MUSIC.NOTE_NAMES = table_map(function(note) return note.name end, CONFIG.MUSIC.NOTES)
-  CONFIG.MUSIC.SCALE_NAMES = table_map(function(scale) return scale.name end, music.SCALES)
+  config.MUSIC.NOTE_NAMES = table_map(function(note) return note.name end, config.MUSIC.NOTES)
+  config.MUSIC.SCALE_NAMES = table_map(function(scale) return scale.name end, music.SCALES)
   
   -- params
-  params:add_option("seq_mode", "seq mode", CONFIG.SEQ.MODES, 2)
+  params:add_option("seq_mode", "seq mode", config.SEQ.MODES, 2)
   params:add_option("loop_semi_auto_seq", "loop seq in semi-auto mode", {"Y", "N"}, 1)
   
-  params:add_option("scale", "scale", CONFIG.MUSIC.SCALE_NAMES, 1)
+  params:add_option("scale", "scale", config.MUSIC.SCALE_NAMES, 1)
   params:set_action("scale", set_scale)
   
-  params:add_option("root_note", "root note", CONFIG.MUSIC.NOTE_NAMES, 36)
+  params:add_option("root_note", "root note", config.MUSIC.NOTE_NAMES, 36)
   params:set_action("root_note", set_root_note)
   
   params:add_number("ghost_offset", "ghost offset", -24, 24, 0)
   params:set_action("ghost_offset", set_ghost_offset)
   
-  params:add_option("play_mode", "play mode", CONFIG.SEQ.PLAY_MODES, 1)
+  params:add_option("play_mode", "play mode", config.SEQ.PLAY_MODES, 1)
   params:set_action("play_mode", set_play_mode)
   
-  params:add_option("play_direction", "play direction", CONFIG.SEQ.PLAY_DIRECTIONS, 1)
+  params:add_option("play_direction", "play direction", config.SEQ.PLAY_DIRECTIONS, 1)
   params:set_action("play_direction", set_play_direction)
   
   params:add_separator()
@@ -604,7 +604,7 @@ function init()
   
   params:add_separator()
   
-  params:add_option("synth", "synth", CONFIG.SYNTHS, 3)
+  params:add_option("synth", "synth", config.SYNTHS, 3)
   
   params:add_control("midi_note_velocity", "midi note velocity", controlspec.new(1, 127, "lin", 1, 100, ""))
   params:add_control("midi_velocity_var", "midi velocity variance", controlspec.new(1, 100, "lin", 1, 20, ""))
@@ -617,13 +617,13 @@ function init()
   params:add_number("midi_in_device_number", "midi in device number", 1, 4, 1)
   params:set_action("midi_in_device_number", set_midi_in_device_number)
   
-  scale_name = CONFIG.MUSIC.SCALE_NAMES[13]
-  scale = music.generate_scale_of_length(root_note, scale_name, CONFIG.MUSIC.SCALE_LENGTH)
+  scale_name = config.MUSIC.SCALE_NAMES[13]
+  scale = music.generate_scale_of_length(root_note, scale_name, config.MUSIC.SCALE_LENGTH)
   
-  for x=1,CONFIG.GRID.SIZE.X do
+  for x=1,config.GRID.SIZE.X do
   board[x] = {}
-    for y=1,CONFIG.GRID.SIZE.Y do
-      board[x][y] = CONFIG.GRID.LEVEL.DEAD
+    for y=1,config.GRID.SIZE.Y do
+      board[x][y] = config.GRID.LEVEL.DEAD
     end
   end
   the_past = list.construct(clone_board(board)) -- initial construction of the past with a single 'dead' board
@@ -652,14 +652,14 @@ function redraw()
   
   screen.move(0, 28)
   screen.level(15)
-  screen.text(CONFIG.SEQ.PLAY_MODES[params:get("play_mode")])
+  screen.text(config.SEQ.PLAY_MODES[params:get("play_mode")])
   screen.level(7)
   screen.move(0, 36)
   screen.text("play mode")
   
   screen.move(0, 48)
   screen.level(15)
-  screen.text(CONFIG.SEQ.PLAY_DIRECTIONS[params:get("play_direction")])
+  screen.text(config.SEQ.PLAY_DIRECTIONS[params:get("play_direction")])
   screen.level(7)
   screen.move(0, 56)
   screen.text("play direction")
@@ -672,10 +672,10 @@ end
 -- grid UI
 function grid_redraw()
   g:all(0)
-  for x=1,CONFIG.GRID.SIZE.X do
-    for y=1,CONFIG.GRID.SIZE.Y do
+  for x=1,config.GRID.SIZE.X do
+    for y=1,config.GRID.SIZE.Y do
       if (position.x == x and position.y == y) then
-        g:led(x, y, CONFIG.GRID.LEVEL.ACTIVE)
+        g:led(x, y, config.GRID.LEVEL.ACTIVE)
       else
         g:led(x, y, board[x][y])
       end
@@ -762,9 +762,9 @@ end
 g.key = function(x, y, z)
   if (z == 1) then
     if (is_active(x, y)) then
-      board[x][y] = CONFIG.GRID.LEVEL.DEAD
+      board[x][y] = config.GRID.LEVEL.DEAD
     else
-      board[x][y] = CONFIG.GRID.LEVEL.ALIVE
+      board[x][y] = config.GRID.LEVEL.ALIVE
     end
   end
   grid_redraw()
