@@ -24,7 +24,10 @@ helpers.table.reverse = function(arr)
   return rev_arr
 end
 
-helpers.table.shuffle = function(orig_tab)
+helpers.table.shuffle = function(orig_tab, seed)
+  if seed then
+    math.randomseed(seed)
+  end
   local tab = {table.unpack(orig_tab)}
   for i = #tab, 2, -1 do
     local j = math.random(i)
