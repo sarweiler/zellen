@@ -4,10 +4,10 @@ CrowService = {}
 CrowService.__index = CrowService
 
 function CrowService:new(my_own_private_crow)
-  local c = {}
-  c.crow = my_own_private_crow or crow
-  setmetatable(c, self)
-  return c
+  local cs = {}
+  cs.crow = my_own_private_crow or crow
+  setmetatable(cs, self)
+  return cs
 end
 
 function CrowService:set_cv(output, voltage)
