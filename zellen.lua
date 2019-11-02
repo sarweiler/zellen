@@ -297,7 +297,7 @@ local function play_seq_step()
       if(support_mode == 1) then 
         support_note_value = state.seq.position.x / state.seq.position.y
       elseif support_mode == 2 then
-        support_note_value = state.seq.position.x % state.seq.position.y
+        support_note_value = math.max(state.seq.position.x % state.seq.position.y, 1)
       elseif support_mode == 3 then
         support_note_value = state.seq.position.x + state.seq.position.y
       end
