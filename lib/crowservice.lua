@@ -5,7 +5,7 @@ CrowService.__index = CrowService
 
 function CrowService:new(my_own_private_crow)
   local cs = {}
-  cs.crow = my_own_private_crow or crow
+  cs.crow = my_own_private_crow
   setmetatable(cs, self)
   return cs
 end
