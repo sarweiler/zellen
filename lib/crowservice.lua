@@ -1,6 +1,6 @@
 -- talking to crow
 
-CrowService = {}
+local CrowService = {}
 CrowService.__index = CrowService
 
 function CrowService:new(my_own_private_crow)
