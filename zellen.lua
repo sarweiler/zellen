@@ -36,6 +36,7 @@ local beatclock = require("beatclock")
 local er = require("er")
 local g = grid.connect()
 
+-- determine grid size
 config.GRID.SIZE.X = g.cols
 config.GRID.SIZE.Y = g.rows
 
@@ -260,7 +261,9 @@ local function reset_sequence()
       generation_step()
     end
     if(not state.seq_running) then
-      clk:start()
+      if(params:get("crow_clock") == 1) then
+        clk:start()
+      end
       state.seq_running = true
       state.show_playing_indicator = true
     end
@@ -404,6 +407,16 @@ local function set_midi_in_device_number()
   midi_in.event = function(data) clk:process_midi(data) end
 end
 
+local function set_crow_clock()
+  if(params:get("crow_clock") == 1) then
+    -- use internal clock, set crow trigger callback to dummy function
+    cr:set_trigger_input(1, function() end)
+  else
+    -- use external clock
+    cr:set_trigger_input(1, play_seq_step)
+  end
+end
+
 
 -------------
 -- GLOBALS --
@@ -469,8 +482,10 @@ function init()
   params:add_option("synth_crow", "crow cv output", {"on", "off"}, 1)
   params:add_control("crow_note_divider", "crow note divider", controlspec.new(1, 100, "lin", 1, 12, ""))
   params:add_control("crow_octave_offset", "crow cv octave offset", controlspec.new(-10, 10, "lin", 1, -3, ""))
-  params:add_option("crow_support_mode", "crow support mode", config.CROW.SUPPORT_MODES)
+  params:add_option("crow_support_mode", "crow support mode", config.CROW.SUPPORT_MODES, 1)
   params:add_control("crow_support_mode_note_offset", "crow support note offset", controlspec.new(-36, 36, "lin", 1, 0, ""))
+  params:add_option("crow_clock", "crow clock", {"internal", "input 1"}, 1)
+  params:set_action("crow_clock", set_crow_clock)
 
   params:add_separator()
   params:add_option("synth_midi", "midi output", {"on", "off"}, 1)
@@ -609,7 +624,9 @@ function key(n, z)
           if (#state.playable_cells == 0) then
             generation_step()
           end
-          clk:start()
+          if(params:get("crow_clock") == 1) then
+            clk:start()
+          end
           state.seq_running = true
           state.show_playing_indicator = true
         end
