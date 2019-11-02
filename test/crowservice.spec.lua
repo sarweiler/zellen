@@ -13,7 +13,11 @@ describe("Busted unit testing framework", function()
           execute = function() end
         }
       },
-      input = {{}}
+      input = {
+        {
+          mode = function() end
+        }
+     }
     }
   end)
 
@@ -38,5 +42,16 @@ describe("Busted unit testing framework", function()
 
     c:execute_action(1)
     assert.spy(s).was_called()
+  end)
+
+  it("should set an input to accept triggers", function()
+    local mode_spy = spy.on(crow_stub.input[1], "mode")
+    local c = cs:new(crow_stub)
+    local change_fn = function() print("change") end
+
+    c:set_trigger_input(1, change_fn)
+
+    assert.are.equal(crow_stub.input[1].change, change_fn)
+    assert.spy(mode_spy).was_called()
   end)
 end)
