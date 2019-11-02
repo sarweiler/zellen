@@ -41,6 +41,13 @@ local config = {
       "ghost"
     },
   },
+  CROW = {
+    SUPPORT_MODES = {
+      "x/y",
+      "x%y",
+      "x+y"
+    }
+  },
   SYNTHS = {
     "internal",
     "midi",

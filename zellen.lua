@@ -78,9 +78,10 @@ local function note_on(note, support_note)
   if(synth_modes.crow) then
     local crow_octave_offset = params:get("crow_octave_offset")
     local crow_note_divider = params:get("crow_note_divider")
+    local crow_support_mode_note_offset = params:get("crow_support_mode_note_offset")
     cr:set_cv(1, note/crow_note_divider + state.note_offset/crow_note_divider + crow_octave_offset)
     cr:execute_action(2)
-    cr:set_cv(3, support_note/crow_note_divider + crow_octave_offset)
+    cr:set_cv(3, support_note/crow_note_divider + crow_support_mode_note_offset/crow_note_divider + crow_octave_offset)
   end
   table.insert(state.active_notes, note_num)
 end
@@ -286,8 +287,19 @@ local function play_seq_step()
     if (state.play_pos <= #state.playable_cells) then
       state.seq.position = state.playable_cells[state.play_pos]
       local midi_note = state.scale[(state.seq.position.x - 1) + state.seq.position.y]
-      -- TODO: make support note mode configurable
-      local support_note = state.scale[math.ceil((state.seq.position.x)/state.seq.position.y)]
+      local support_mode = params:get("crow_support_mode")
+
+      -- crow support note
+      local support_note_value = state.seq.position.x / state.seq.position.y
+      if(support_mode == 1) then 
+        support_note_value = state.seq.position.x / state.seq.position.y
+      elseif support_mode == 2 then
+        support_note_value = state.seq.position.x % state.seq.position.y
+      elseif support_mode == 3 then
+        support_note_value = state.seq.position.x + state.seq.position.y
+      end
+
+      local support_note = state.scale[math.ceil(support_note_value)]
       note_on(midi_note, support_note)
       if(play_direction == 4 or play_direction == 5) then
         if(math.random(2) == 1 and state.play_pos > 1) then
@@ -456,7 +468,9 @@ function init()
   params:add_separator()
   params:add_option("synth_crow", "crow cv output", {"on", "off"}, 1)
   params:add_control("crow_note_divider", "crow note divider", controlspec.new(1, 100, "lin", 1, 12, ""))
-  params:add_control("crow_octave_offset", "crow octave offset", controlspec.new(-10, 10, "lin", 1, -3, "v"))
+  params:add_control("crow_octave_offset", "crow cv octave offset", controlspec.new(-10, 10, "lin", 1, -3, ""))
+  params:add_option("crow_support_mode", "crow support mode", config.CROW.SUPPORT_MODES)
+  params:add_control("crow_support_mode_note_offset", "crow support note offset", controlspec.new(-36, 36, "lin", 1, 0, ""))
 
   params:add_separator()
   params:add_option("synth_midi", "midi output", {"on", "off"}, 1)
