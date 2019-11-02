@@ -54,4 +54,15 @@ describe("Busted unit testing framework", function()
     assert.are.equal(crow_stub.input[1].change, change_fn)
     assert.spy(mode_spy).was_called()
   end)
+
+  it("should set an input to accept cv", function()
+    local mode_spy = spy.on(crow_stub.input[1], "mode")
+    local c = cs:new(crow_stub)
+    local stream_fn = function() print("stream") end
+
+    c:set_cv_input(1, stream_fn)
+
+    assert.are.equal(crow_stub.input[1].stream, stream_fn)
+    assert.spy(mode_spy).was_called()
+  end)
 end)
