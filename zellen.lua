@@ -25,6 +25,8 @@ engine.name = "PolyPerc"
 
 local helpers = include("lib/helpers")
 local cs = include("lib/crowservice")
+local config = include("lib/config")
+local state = include("lib/state")
 
 --borrowed circular linked list library we dont use the circular part... yet.
 local list = include("lib/linkedlist")
@@ -34,84 +36,8 @@ local beatclock = require("beatclock")
 local er = require("er")
 local g = grid.connect()
 
--- constants
-local config = {
-  GRID = {
-    SIZE = {
-      X = g.cols,
-      Y = g.rows
-    },
-    LEVEL = {
-      ALIVE = 8,
-      BORN = 12,
-      REBORN = 13,
-      DYING = 2,
-      DEAD = 0,
-      ALIVE_THRESHOLD = 7,
-      ACTIVE = 15
-    }
-  },
-  MUSIC = {
-    NOTE_NAMES_OCTAVE = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"},
-    NOTES = {}, -- constructed on init
-    NOTE_NAMES = {}, -- constructed on init
-    SCALE_NAMES = {}, -- constructed on init
-    SCALE_LENGTH = 24
-  },
-  SEQ = {
-    MODES = {
-      "manual",
-      "semi-automatic",
-      "automatic"
-    },
-    PLAY_DIRECTIONS = {
-      "up",
-      "down",
-      "random",
-      "drunken up",
-      "drunken down"
-    },
-    PLAY_MODES = {
-      "born",
-      "reborn",
-      "ghost"
-    },
-  },
-  SYNTHS = {
-    "internal",
-    "midi",
-    "both"
-  },
-}
-
--- initial values
-local state = {
-  keys = {
-    key1_down = false,
-    key2_down = false,
-    key3_down = false
-  },
-  board = {
-    current = {},
-    the_past = {} --constructed on init. This linked list will hold ancestral boards so we may visit the past
-  },
-  seq = {
-    position = {}
-  },
-  root_note = 36,
-  scale_name = "",
-  scale = {},
-  note_offset = 0,
-  playable_cells = {},
-  play_pos = 0,
-  active_notes = {},
-  seq_running = false,
-  show_playing_indicator = false,
-  beats = {true},
-  euclid_seq_len = 1,
-  euclid_seq_beats = 1,
-  beat_step = 0
-}
+config.GRID.SIZE.X = g.cols
+config.GRID.SIZE.Y = g.rows
 
 -- beatclock
 local clk = beatclock.new()
