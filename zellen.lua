@@ -122,8 +122,12 @@ midi_in.event = function(data) clk:process_midi(data) end
 -- note on/off
 local function note_on(note, support_note)
   local note_num = math.min((note + state.note_offset), 127)
-  local synth_mode = params:get("synth")
-  if(synth_mode == 1 or synth_mode == 3) then
+  local synth_modes = {
+    internal = params:get("synth_internal") == 1,
+    midi = params:get("synth_midi") == 1,
+    crow = params:get("synth_crow") == 1
+  }
+  if(synth_modes.internal) then
     local amp = params:get("amp")
     local amp_variance = math.random(params:get("midi_velocity_var")) / 100
     if(math.random(2) > 1) then
@@ -134,7 +138,7 @@ local function note_on(note, support_note)
     engine.amp(amp)
     engine.hz(music.note_num_to_freq(note_num))
   end
-  if(synth_mode == 2 or synth_mode == 3) then
+  if(synth_modes.midi) then
     local velocity_variance = math.random(params:get("midi_velocity_var"))
     local velocity = params:get("midi_note_velocity")
     if(math.random(2) > 1) then
@@ -145,11 +149,13 @@ local function note_on(note, support_note)
     midi_out:note_on(note_num, velocity, params:get("midi_channel"))
   end
 
-  -- experimental crow support
-  -- TODO: make switchable via param
-  cr:set_cv(1, note/12 - 3)
-  cr:execute_action(2)
-  cr:set_cv(3, support_note/12 - 3)
+  if(synth_modes.crow) then
+    local crow_octave_offset = params:get("crow_octave_offset")
+    local crow_note_divider = params:get("crow_note_divider")
+    cr:set_cv(1, note/crow_note_divider + state.note_offset/crow_note_divider + crow_octave_offset)
+    cr:execute_action(2)
+    cr:set_cv(3, support_note/crow_note_divider + crow_octave_offset)
+  end
   table.insert(state.active_notes, note_num)
 end
 
@@ -502,8 +508,6 @@ function init()
   params:add_option("wrap_mode", "wrap board at edges", {"Y", "N"}, 1)
   
   params:add_separator()
-  clk:add_clock_params()
-  params:add_separator()
   
   params:add_number("euclid_seq_len", "euclid seq length", 1, 100, 1)
   params:set_action("euclid_seq_len", set_euclid_seq_len)
@@ -514,19 +518,22 @@ function init()
   params:add_option("euclid_reset", "reset seq at start of gen", { "Y", "N" }, 2)
   
   params:add_separator()
-  
-  params:add_control("amp", "amp", controlspec.new(0.1, 1.0, "lin", 0.01, 0.8, ""))
+  params:add_option("synth_internal", "internal sound (polyperc)", {"on", "off"}, 1)
+  params:add_control("amp", "internal amp", controlspec.new(0.1, 1.0, "lin", 0.01, 0.8, ""))
 
-  params:add_control("release", "release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
+  params:add_control("release", "internal release", controlspec.new(0.1, 5.0, "lin", 0.01, 0.5, "s"))
   params:set_action("release", set_release)
   
-  params:add_control("cutoff", "cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
+  params:add_control("cutoff", "internal cutoff", controlspec.new(50, 5000, "exp", 0, 1000, "hz"))
   params:set_action("cutoff", set_cutoff)
-  
+
   params:add_separator()
-  
-  params:add_option("synth", "synth", config.SYNTHS, 3)
-  
+  params:add_option("synth_crow", "crow cv output", {"on", "off"}, 1)
+  params:add_control("crow_note_divider", "crow note divider", controlspec.new(1, 100, "lin", 1, 12, ""))
+  params:add_control("crow_octave_offset", "crow octave offset", controlspec.new(-10, 10, "lin", 1, -3, "v"))
+
+  params:add_separator()
+  params:add_option("synth_midi", "midi output", {"on", "off"}, 1)
   params:add_control("midi_note_velocity", "midi note velocity", controlspec.new(1, 127, "lin", 1, 100, ""))
   params:add_control("midi_velocity_var", "midi velocity variance", controlspec.new(1, 100, "lin", 1, 20, ""))
   
@@ -537,6 +544,9 @@ function init()
   
   params:add_number("midi_in_device_number", "midi in device number", 1, 4, 1)
   params:set_action("midi_in_device_number", set_midi_in_device_number)
+
+  params:add_separator()
+  clk:add_clock_params()
   
   state.scale_name = config.MUSIC.SCALE_NAMES[13]
   state.scale= music.generate_scale_of_length(state.root_note, state.scale_name, config.MUSIC.SCALE_LENGTH)
