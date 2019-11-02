@@ -23,8 +23,6 @@
 
 engine.name = "PolyPerc"
 
-local script_path = ...
-
 local helpers = include("lib/helpers")
 local cs = include("lib/crowservice")
 
