@@ -23,14 +23,18 @@
 
 engine.name = "PolyPerc"
 
--- local z_params = include("lib/z_params")
+local script_path = ...
+
 local helpers = include("lib/helpers")
+local cs = include("lib/crowservice")
+
+--borrowed circular linked list library we dont use the circular part... yet.
+local list = include("lib/linkedlist")
 
 local music = require("musicutil")
 local beatclock = require("beatclock")
 local er = require("er")
 local g = grid.connect()
-local list = include("lib/linkedlist") --borrowed circular linked list library we dont use the circular part... yet.
 
 -- constants
 local config = {
@@ -145,9 +149,9 @@ local function note_on(note, support_note)
 
   -- experimental crow support
   -- TODO: make switchable via param
-  crow.output[1].volts = note/12 - 3 -- TODO: make cv octave offset configurable via param
-  crow.output[2].execute()
-  crow.output[3].volts = support_note/12 - 3 -- TODO: make cv octave offset configurable via param
+  cr:set_cv(1, note/12 - 3)
+  cr:execute_action(2)
+  cr:set_cv(3, support_note/12 - 3)
   table.insert(state.active_notes, note_num)
 end
 
@@ -342,7 +346,7 @@ local function play_seq_step()
   local seq_mode = params:get("seq_mode")
   notes_off()
 
-  crow.output[4].execute()
+  cr:execute_action(4)
   
   state.show_playing_indicator = not state.show_playing_indicator
   
@@ -466,6 +470,8 @@ end
 
 -- init
 function init()
+  cr = cs:new(crow)
+
   for i=0, 72 do
     config.MUSIC.NOTES[i] = {
       ["number"] = i,
@@ -552,8 +558,8 @@ function init()
   clk.on_step = play_seq_step
 
   -- crow init
-  crow.output[2].action = "{to(5,0), to(0, 0.25)}"
-  crow.output[4].action = "{to(5,0), to(0, 0.1)}"
+  cr:set_action(2, "{to(5,0), to(0, 0.25)}")
+  cr:set_action(4, "{to(5,0), to(0, 0.1)}")
 end
 
 
