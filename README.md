@@ -47,6 +47,8 @@ Crow configuration for Zellen:
 * Output 3: Alternative CV
 * Output 4: Clock
 
+CV offset (input 2) can be set to pre or post quantization in the parameters menu.
+
 Alternative CV is, just like the main sequence, a CV derived from the current play position on the board. The CV can be calculated with these methods (configurable in the parameters menu):
 * x/y (default)
 * x%y
