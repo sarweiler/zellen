@@ -35,6 +35,25 @@ Set the sequencing mode in the parameters screen. Default is semi-automatic.
 * semi-automatic: Plays the sequence for a single generation (and loops it if "loop seq in semi-auto mode" is enabled (default)).
 * automatic: Like semi-automatic, but automatically calculates the next generation and plays it.
 
+## Crow support
+
+Zellen supports CV out via [Crow](https://monome.org/docs/crow/). Crow CV output can be configured in Norns's parameters menu.
+
+Crow configuration for Zellen:
+* Input 1: Clock
+* Input 2: CV offset
+* Output 1: CV
+* Output 2: Trigger
+* Output 3: Alternative CV
+* Output 4: Clock
+
+Alternative CV is, just like the main sequence, a CV derived from the current play position on the board. The CV can be calculated with these methods (configurable in the parameters menu):
+* x/y (default)
+* x%y
+* x+y (same as the main sequence)
+
+Configuration
+
 ## MIDI
 Set the MIDI channel (default: 1), MIDI velocity (default: 100), and MIDI clock in the parameters screen.
 
