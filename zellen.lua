@@ -80,7 +80,14 @@ local function note_on(note, support_note)
     local crow_octave_offset = params:get("crow_octave_offset")
     local crow_note_divider = params:get("crow_note_divider")
     local crow_support_mode_note_offset = params:get("crow_support_mode_note_offset")
-    cr:set_cv(1, note/crow_note_divider + state.note_offset/crow_note_divider + crow_octave_offset)
+    local crow_cv_offset = state.crow.cv_offset
+    local note_offset = state.note_offset/crow_note_divider
+    if(params:get("crow_cv_offset") == 1) then
+      local note_with_offset = note + (math.floor(crow_cv_offset * crow_note_divider))
+      cr:set_cv(1, note_with_offset/crow_note_divider + note_offset + crow_octave_offset)
+    else
+      cr:set_cv(1, note/crow_note_divider + crow_cv_offset + note_offset + crow_octave_offset)
+    end
     cr:execute_action(2)
     cr:set_cv(3, support_note/crow_note_divider + crow_support_mode_note_offset/crow_note_divider + crow_octave_offset)
   end
@@ -482,6 +489,7 @@ function init()
   params:add_option("synth_crow", "crow cv output", {"on", "off"}, 1)
   params:add_control("crow_note_divider", "crow note divider", controlspec.new(1, 100, "lin", 1, 12, ""))
   params:add_control("crow_octave_offset", "crow cv octave offset", controlspec.new(-10, 10, "lin", 1, -3, ""))
+  params:add_option("crow_cv_offset", "quantize crow cv offset", {"y", "n"}, 1)
   params:add_option("crow_support_mode", "crow support mode", config.CROW.SUPPORT_MODES, 1)
   params:add_control("crow_support_mode_note_offset", "crow support note offset", controlspec.new(-36, 36, "lin", 1, 0, ""))
   params:add_option("crow_clock", "crow clock", {"internal", "input 1"}, 1)
@@ -523,6 +531,9 @@ function init()
   -- crow init
   cr:set_action(2, "{to(5,0), to(0, 0.25)}")
   cr:set_action(4, "{to(5,0), to(0, 0.1)}")
+  cr:set_cv_input(2, function(v)
+    state.crow.cv_offset = v
+  end)
 end
 
 

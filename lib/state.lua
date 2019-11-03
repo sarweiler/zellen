@@ -12,6 +12,9 @@ local state = {
   seq = {
     position = {}
   },
+  crow = {
+    cv_offset = 0
+  },
   root_note = 36,
   scale_name = "",
   scale = {},
