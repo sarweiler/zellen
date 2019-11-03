@@ -24,7 +24,7 @@ end
 
 function CrowService:set_trigger_input(input, change_fn)
   self.crow.input[input].change = change_fn
-  self.crow.input[input].mode("change", 2.0, 0.25, "rising")
+  self.crow.input[input].mode("change", 2.0, 0.1, "rising")
 end
 
 function CrowService:set_cv_input(input, stream_fn)
