@@ -52,8 +52,6 @@ Alternative CV is, just like the main sequence, a CV derived from the current pl
 * x%y
 * x+y (same as the main sequence)
 
-Configuration
-
 ## MIDI
 Set the MIDI channel (default: 1), MIDI velocity (default: 100), and MIDI clock in the parameters screen.
 

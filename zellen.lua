@@ -1,7 +1,9 @@
--- zellen v1.2.0
+-- zellen v1.3.1
 --
 -- sequencer based on
 -- conway's game of life
+-- https://llllllll.co/t/21107
+--
 --
 -- grid: enter cell pattern
 --
