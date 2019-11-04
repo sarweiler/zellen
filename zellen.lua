@@ -1,4 +1,4 @@
--- zellen v1.3.1
+-- zellen v1.3.2
 --
 -- sequencer based on
 -- conway's game of life
