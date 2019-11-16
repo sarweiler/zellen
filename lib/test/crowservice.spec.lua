@@ -1,6 +1,6 @@
 local cs = require("lib/crowservice")
 
-describe("Busted unit testing framework", function()
+describe("CrowService", function()
   local crow_stub
 
   setup(function()
