@@ -20,7 +20,7 @@ local config = {
     NOTES = {}, -- constructed on init
     NOTE_NAMES = {}, -- constructed on init
     SCALE_NAMES = {}, -- constructed on init
-    SCALE_LENGTH = 24
+    SCALE_LENGTH = 32
   },
   SEQ = {
     MODES = {

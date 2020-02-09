@@ -1,4 +1,4 @@
--- zellen v1.3.2
+-- zellen v1.3.3
 --
 -- sequencer based on
 -- conway's game of life
@@ -298,7 +298,7 @@ local function play_seq_step()
   if (state.beats[(state.beat_step % beat_seq_lengths) + 1] or seq_mode == 1) then
     if (state.play_pos <= #state.playable_cells) then
       state.seq.position = state.playable_cells[state.play_pos]
-      local midi_note = state.scale[(state.seq.position.x - 1) + state.seq.position.y]
+      local midi_note = math.min(state.scale[(state.seq.position.x - 1) + (state.seq.position.y)], 127)
       local support_mode = params:get("crow_support_mode")
 
       -- crow support note
