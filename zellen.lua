@@ -49,12 +49,13 @@ local midi_in = midi.connect(1)
 midi_in.event = function(data) clk:process_midi(data) end
 
 -- note on/off
-local function note_on(note, support_note)
+local function note_on(note, support_note, jf_note)
   local note_num = math.min((note + state.note_offset), 127)
   local synth_modes = {
     internal = params:get("synth_internal") == 1,
     midi = params:get("synth_midi") == 1,
-    crow = params:get("synth_crow") == 1
+    crow = params:get("synth_crow") == 1,
+    jf = params:get("synth_jf") == 1
   }
   if(synth_modes.internal) then
     local amp = params:get("amp")
@@ -67,6 +68,7 @@ local function note_on(note, support_note)
     engine.amp(amp)
     engine.hz(music.note_num_to_freq(note_num))
   end
+
   if(synth_modes.midi) then
     local velocity_variance = math.random(params:get("midi_velocity_var"))
     local velocity = params:get("midi_note_velocity")
@@ -78,9 +80,9 @@ local function note_on(note, support_note)
     midi_out:note_on(note_num, velocity, params:get("midi_channel"))
   end
 
+  local crow_note_divider = params:get("crow_note_divider")
   if(synth_modes.crow) then
     local crow_octave_offset = params:get("crow_octave_offset")
-    local crow_note_divider = params:get("crow_note_divider")
     local crow_support_mode_note_offset = params:get("crow_support_mode_note_offset")
     local crow_cv_offset = state.crow.cv_offset
     local note_offset = state.note_offset/crow_note_divider
@@ -93,6 +95,14 @@ local function note_on(note, support_note)
     cr:execute_action(2)
     cr:set_cv(3, support_note/crow_note_divider + crow_support_mode_note_offset/crow_note_divider + crow_octave_offset)
   end
+
+  if(synth_modes.jf) then
+    local jf_octave_offset = params:get("jf_octave_offset")
+    local jf_note_offset = params:get("jf_note_offset")
+    local jf_note_with_offset = jf_note/crow_note_divider + jf_note_offset/crow_note_divider + jf_octave_offset
+    cr:jf_play_note(jf_note_with_offset)
+  end
+
   table.insert(state.active_notes, note_num)
 end
 
@@ -300,19 +310,15 @@ local function play_seq_step()
       state.seq.position = state.playable_cells[state.play_pos]
       local midi_note = math.min(state.scale[(state.seq.position.x - 1) + (state.seq.position.y)], 127)
       local support_mode = params:get("crow_support_mode")
+      local jf_mode = params:get("jf_note_mode")
 
       -- crow support note
-      local support_note_value = state.seq.position.x / state.seq.position.y
-      if(support_mode == 1) then 
-        support_note_value = state.seq.position.x / state.seq.position.y
-      elseif support_mode == 2 then
-        support_note_value = math.max(state.seq.position.x % state.seq.position.y, 1)
-      elseif support_mode == 3 then
-        support_note_value = state.seq.position.x + state.seq.position.y
-      end
+      support_note_value = helpers.calc_note(support_mode, state.seq.position.x, state.seq.position.y)
+      jf_note_value = helpers.calc_note(jf_mode, state.seq.position.x, state.seq.position.y)
 
       local support_note = state.scale[math.ceil(support_note_value)]
-      note_on(midi_note, support_note)
+      local jf_note = state.scale[math.ceil(jf_note_value)]
+      note_on(midi_note, support_note, jf_note)
       if(play_direction == 4 or play_direction == 5) then
         if(math.random(2) == 1 and state.play_pos > 1) then
           state.play_pos = state.play_pos - 1
@@ -426,6 +432,22 @@ local function set_crow_clock()
   end
 end
 
+local function set_jf_output(v)
+  if(v == 1) then
+    cr:activate_jf_ii()
+  else
+    cr:deactivate_jf_ii()
+  end
+end
+
+local function set_ii_pullup(v)
+  if(v == 1) then
+    cr:activate_ii_pullup()
+  else
+    cr:deactivate_ii_pullup()
+  end
+end
+
 
 -------------
 -- GLOBALS --
@@ -492,10 +514,21 @@ function init()
   params:add_control("crow_note_divider", "crow note divider", controlspec.new(1, 100, "lin", 1, 12, ""))
   params:add_control("crow_octave_offset", "crow cv octave offset", controlspec.new(-10, 10, "lin", 1, -3, ""))
   params:add_option("crow_cv_offset", "quantize crow cv offset", {"y", "n"}, 1)
-  params:add_option("crow_support_mode", "crow alternative mode", config.CROW.SUPPORT_MODES, 1)
-  params:add_control("crow_support_mode_note_offset", "crow alt. note offset", controlspec.new(-36, 36, "lin", 1, 0, ""))
+  params:add_option("crow_support_mode", "crow cv2 mode", config.CROW.SUPPORT_MODES, 1)
+  params:add_control("crow_support_mode_note_offset", "crow cv2 note offset", controlspec.new(-36, 36, "lin", 1, 0, ""))
   params:add_option("crow_clock", "crow clock", {"internal", "input 1"}, 1)
   params:set_action("crow_clock", set_crow_clock)
+
+  params:add_separator()
+  params:add_option("synth_jf", "jf ii output", {"on", "off"}, 2)
+  params:set_action("synth_jf", function(v) set_jf_output(v) end)
+  params:add_control("jf_note_offset", "jf note offset", controlspec.new(-36, 36, "lin", 1, 0, ""))
+  params:add_control("jf_octave_offset", "jf octave offset", controlspec.new(-8, 0, "lin", 1, -5, ""))
+  params:add_option("jf_note_mode", "jf note mode", config.JF.NOTE_MODES, 3)
+
+  params:add_separator()
+  params:add_option("ii_pullup", "ii pullup", {"on", "off"}, 1)
+  params:set_action("ii_pullup", function(v) set_ii_pullup(v) end)
 
   params:add_separator()
   params:add_option("synth_midi", "midi output", {"on", "off"}, 1)
