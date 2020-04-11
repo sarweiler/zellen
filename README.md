@@ -44,15 +44,19 @@ Crow configuration for Zellen:
 * Input 2: CV offset
 * Output 1: CV
 * Output 2: Trigger
-* Output 3: Alternative CV
+* Output 3: CV 2
 * Output 4: Clock
 
 CV offset (input 2) can be set to pre or post quantization in the parameters menu.
 
-Alternative CV is, just like the main sequence, a CV derived from the current play position on the board. The CV can be calculated with these methods (configurable in the parameters menu):
+CV 2 is, just like the main sequence, a CV derived from the current play position on the board. The CV can be calculated with these methods (configurable in the parameters menu):
 * x/y (default)
 * x%y
 * x+y (same as the main sequence)
+
+## Just Friends support (via ii)
+
+Zellen supports playing notes on [Mannequins Just Friends](https://www.whimsicalraps.com/products/just-friends) via Crow and a ii connection. The note value can be determined with the same methods as the CV 2 value for Crow (configurable in the parameters menu).
 
 ## MIDI
 Set the MIDI channel (default: 1), MIDI velocity (default: 100), and MIDI clock in the parameters screen.
