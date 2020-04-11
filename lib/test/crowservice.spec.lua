@@ -17,6 +17,13 @@ describe("CrowService", function()
         {
           mode = function() end
         }
+     },
+     ii = {
+      jf = {
+        play_note = function() end,
+        mode = function() end
+      },
+      pullup = function() end
      }
     }
   end)
@@ -65,4 +72,38 @@ describe("CrowService", function()
     assert.are.equal(crow_stub.input[1].stream, stream_fn)
     assert.spy(mode_spy).was_called()
   end)
+
+  it("should activate ii pullup", function()
+    local ii_pullup_spy = spy.on(crow_stub.ii, "pullup")
+    local c = cs:new(crow_stub)
+
+    c:activate_ii_pullup()
+    assert.spy(ii_pullup_spy).was_called_with(true)
+  end)
+
+  it("should activate jf ii mode", function()
+    local ii_jf_mode_spy = spy.on(crow_stub.ii.jf, "mode")
+    local c = cs:new(crow_stub)
+
+    c:activate_jf_ii()
+    assert.spy(ii_jf_mode_spy).was_called_with(1)
+  end)
+
+  it("should deactivate jf ii mode", function()
+    local ii_jf_mode_spy = spy.on(crow_stub.ii.jf, "mode")
+    local c = cs:new(crow_stub)
+
+    c:deactivate_jf_ii()
+    assert.spy(ii_jf_mode_spy).was_called_with(0)
+  end)
+
+  it("should send a note value to just friends", function()
+    local ii_jf_note_spy = spy.on(crow_stub.ii.jf, "play_note")
+    local c = cs:new(crow_stub)
+
+    c:jf_play_note(3)
+    assert.spy(ii_jf_note_spy).was_called_with(3, 4.0)
+  end)
+
+
 end)

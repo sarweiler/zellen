@@ -32,4 +32,24 @@ function CrowService:set_cv_input(input, stream_fn)
   self.crow.input[input].mode("stream", 0.1)
 end
 
+function CrowService:activate_ii_pullup()
+  self.crow.ii.pullup(true)
+end
+
+function CrowService:deactivate_ii_pullup()
+  self.crow.ii.pullup(false)
+end
+
+function CrowService:activate_jf_ii()
+  self.crow.ii.jf.mode(1)
+end
+
+function CrowService:deactivate_jf_ii()
+  self.crow.ii.jf.mode(0)
+end
+
+function CrowService:jf_play_note(note_cv)
+  self.crow.ii.jf.play_note(note_cv, 4.0)
+end
+
 return CrowService
