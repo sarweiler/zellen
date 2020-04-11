@@ -46,4 +46,15 @@ describe("Test helpers", function()
     input_board[1][3] = 19
     assert.are_not.same(result, input_board)
   end)
+
+  it("should calculate a note value with a mode", function()
+    local note_value_mode1 = helpers.calc_note(1, 12, 5)
+    assert.are.same(note_value_mode1, 2.4)
+
+    local note_value_mode2 = helpers.calc_note(2, 12, 5)
+    assert.are.same(note_value_mode2, 2)
+
+    local note_value_mode3 = helpers.calc_note(3, 12, 5)
+    assert.are.same(note_value_mode3, 17)
+  end)
 end)

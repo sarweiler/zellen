@@ -67,5 +67,17 @@ helpers.init_engine = function(engine)
   engine.cutoff(params:get("cutoff"))
 end
 
+helpers.calc_note = function(mode, x, y)
+  local note_value = x / y
+  if(mode == 1) then 
+    note_value = x / y
+  elseif mode == 2 then
+    note_value = math.max(x % y, 1)
+  elseif mode == 3 then
+    note_value = x + y
+  end
+  return note_value
+end
+
 
 return helpers
