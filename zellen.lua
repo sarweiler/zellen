@@ -306,6 +306,7 @@ local function play_seq_step()
   if (state.beats[(state.beat_step % beat_seq_lengths) + 1] or seq_mode == 1) then
     if (#state.playable_cells == 0) then
       generation_step()
+      init_position()
     end
     if (state.play_pos <= #state.playable_cells and #state.playable_cells > 0) then
       state.seq.position = state.playable_cells[state.play_pos]
