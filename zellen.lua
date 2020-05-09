@@ -1,4 +1,4 @@
--- zellen v1.4.2
+-- zellen v1.4.3
 --
 -- sequencer based on
 -- conway's game of life
@@ -668,6 +668,7 @@ function key(n, z)
           clk:stop()
           state.seq_running = false
           state.show_playing_indicator = false
+          notes_off()
         else
           if (#state.playable_cells == 0) then
             generation_step()
