@@ -1,3 +1,6 @@
+Zellen is currently not in active development, since I do not own a Norns anymore. If anyone wants to take over, feel free to fork the repository and create a new thread for it on the [lines library](https://llllllll.co/c/library/18). If you do so, send me a message on lines and I will happily link your new repository here and in the old [lines thread](https://llllllll.co/t/zellen/21107).
+
+
 # zellen
 
 A sequencer for Monome norns based on [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life).
